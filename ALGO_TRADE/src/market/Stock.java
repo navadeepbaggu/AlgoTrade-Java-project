@@ -1,0 +1,18 @@
+package market;
+
+public class Stock extends MarketAsset {
+
+    public Stock(String symbol, String companyName, double price) {
+        super(symbol, companyName, price);          // constructor of parent class
+    }
+
+    @Override
+    public double calculateValue(int quantity) {
+        if (quantity < 0) {
+            throw new IllegalArgumentException(
+                    "Quantity cannot be negative.");
+        }
+
+        return getPrice() * quantity;
+    }
+}

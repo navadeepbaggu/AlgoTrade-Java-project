@@ -1,0 +1,105 @@
+package ui;
+
+import java.io.IOException;
+import java.util.Optional;
+import java.util.Scanner;
+
+import auth.LoginService;
+import auth.UserAccount;
+import investor.Investor;
+import market.StockMarket;
+import storage.InvestorFile;
+import trading.Broker;
+import trading.Tradable;
+
+public class AuthenticationMenu {
+    private final LoginService loginService;
+    private final InvestorFile investorFile;
+    private final StockMarket stockMarket;
+    private final MainMenu mainMenu;
+
+    public AuthenticationMenu(
+            LoginService loginService,
+            InvestorFile investorFile,
+            StockMarket stockMarket,
+            MainMenu mainMenu) {
+        this.loginService = loginService;
+        this.investorFile = investorFile;
+        this.stockMarket = stockMarket;
+        this.mainMenu = mainMenu;
+    }
+
+    public void start(Scanner input) {
+        boolean running = true;
+
+        while (running) {
+        	System.out.println("************************************");
+        	System.out.println("      Welcome to AlgoTrade!");
+        	System.out.println("************************************");
+            System.out.println("1. Register");
+            System.out.println("2. Log in");
+            System.out.println("3. Exit");
+            System.out.print("Choose an option: ");
+
+            String choice = input.nextLine().trim();
+
+            try {
+                switch (choice) {
+                    case "1" -> register(input);
+                    case "2" -> loginAndOpenMainMenu(input);
+                    case "3" -> {
+                        running = false;
+                        System.out.println("Goodbye!");
+                    }
+                    default -> System.out.println(
+                            "Please choose 1, 2, or 3.");
+                }
+            } catch (IOException exception) {
+                System.out.println("Could not read or save project data: "
+                        + exception.getMessage());
+            }
+        }
+    }
+
+    private void register(Scanner input) throws IOException {
+        System.out.print("Choose a username: ");
+        String username = input.nextLine().trim();
+
+        System.out.print("Choose a password (at least 8 characters): ");
+        String password = input.nextLine();
+
+        System.out.println(loginService.register(username, password));
+    }
+
+    private void loginAndOpenMainMenu(Scanner input) throws IOException {
+        Optional<UserAccount> account = login(input);
+
+        if (account.isPresent()) {
+            Investor investor =
+                    investorFile.loadInvestor(account.get(), stockMarket);
+            Tradable broker = new Broker(stockMarket);
+
+            mainMenu.show(input, investor, broker);
+        }
+    }
+
+    private Optional<UserAccount> login(Scanner input) throws IOException {
+        System.out.print("Username: ");
+        String username = input.nextLine().trim();
+
+        System.out.print("Password: ");
+        String password = input.nextLine();
+
+        Optional<UserAccount> account =
+                loginService.login(username, password);
+
+        if (account.isPresent()) {
+            System.out.println(
+                    "\nWelcome, " + account.get().getUsername() + "!");
+        } else {
+            System.out.println("Username or password is incorrect.");
+        }
+
+        return account;
+    }
+}

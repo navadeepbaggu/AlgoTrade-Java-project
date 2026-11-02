@@ -1,0 +1,100 @@
+package algotrade;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+import market.Stock;
+import market.StockMarket;
+
+public class TransactionFile {
+    private static final Path DATA_FOLDER =
+            Path.of("D:/AlgoTradeData/transactions");
+
+    public void saveTransaction(
+            String username,
+            Transaction transaction) throws IOException {
+
+        Path filePath = getFilePath(username);
+        Files.createDirectories(DATA_FOLDER);
+
+        String line = transaction.getType() + "|"
+                + transaction.getStock().getSymbol() + "|"
+                + transaction.getQuantity() + "|"
+                + transaction.getPricePerShare() + "|"
+                + transaction.getDateTime()
+                + System.lineSeparator();
+
+        Files.writeString(
+                filePath,
+                line,
+                StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.APPEND);
+    }
+
+    public List<Transaction> loadTransactions(
+            String username,
+            StockMarket stockMarket) throws IOException {
+
+        Path filePath = getFilePath(username);
+        List<Transaction> transactions = new ArrayList<>();
+
+        if (Files.notExists(filePath)) {
+            return transactions;
+        }
+
+        List<String> lines =
+                Files.readAllLines(filePath, StandardCharsets.UTF_8);
+
+        for (String line : lines) {
+            String[] parts = line.split("\\|", -1);
+
+            if (parts.length != 5) {
+                throw new IOException(
+                        "A line in the transaction file is invalid.");
+            }
+
+            Optional<Stock> stock =
+                    stockMarket.findBySymbol(parts[1]);
+
+            if (stock.isEmpty()) {
+                throw new IOException(
+                        "Saved stock " + parts[1]
+                                + " is not in the market list.");
+            }
+
+            try {
+                int quantity = Integer.parseInt(parts[2]);
+                double price = Double.parseDouble(parts[3]);
+                LocalDateTime dateTime = LocalDateTime.parse(parts[4]);
+
+                transactions.add(new Transaction(
+                        parts[0], stock.get(), quantity, price, dateTime));
+
+            } catch (RuntimeException exception) {
+                throw new IOException(
+                        "A transaction record contains invalid data.",
+                        exception);
+            }
+        }
+
+        return transactions;
+    }
+
+    private Path getFilePath(String username) {
+        if (username == null
+                || !username.matches("[A-Za-z0-9_]{3,20}")) {
+            throw new IllegalArgumentException(
+                    "Invalid username for the transaction file.");
+        }
+
+        return DATA_FOLDER.resolve(username + ".txt");
+    }
+}

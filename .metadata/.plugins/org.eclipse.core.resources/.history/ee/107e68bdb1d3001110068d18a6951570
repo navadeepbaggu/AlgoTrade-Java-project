@@ -1,0 +1,50 @@
+package algotrade;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class BuyBasket {
+    private final List<OrderItem> items = new ArrayList<>();
+
+    public void addStock(Stock stock, int quantity) {
+        if (stock == null) {
+            throw new IllegalArgumentException("Stock cannot be empty.");
+        }
+
+        OrderItem existingItem = items.stream()
+                .filter(item -> item.getStock().getSymbol()
+                        .equalsIgnoreCase(stock.getSymbol()))
+                .findFirst()
+                .orElse(null);
+
+        if (existingItem != null) {
+            existingItem.addQuantity(quantity);
+        } else {
+            items.add(new OrderItem(stock, quantity));
+        }
+    }
+
+    public List<OrderItem> getItems() {
+        return Collections.unmodifiableList(
+                new ArrayList<>(items));
+    }
+
+    public double getEstimatedTotal() {
+        double total = 0;
+
+        for (OrderItem item : items) {
+            total += item.getSubtotal();
+        }
+
+        return total;
+    }
+
+    public boolean isEmpty() {
+        return items.isEmpty();
+    }
+
+    public void clear() {
+        items.clear();
+    }
+}

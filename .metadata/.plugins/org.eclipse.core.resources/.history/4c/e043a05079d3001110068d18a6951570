@@ -1,0 +1,5 @@
+package algotrade;
+
+public interface ReportGenerator {
+
+}

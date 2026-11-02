@@ -1,0 +1,7 @@
+package algotrade;
+
+public interface ReportGenerator {
+    void generateReport();
+
+    void generateAnalytics();
+}

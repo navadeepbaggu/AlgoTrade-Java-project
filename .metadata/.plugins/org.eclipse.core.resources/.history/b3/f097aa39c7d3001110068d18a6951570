@@ -1,0 +1,82 @@
+package ui;
+
+import java.io.IOException;
+import java.util.Scanner;
+
+import investor.Investor;
+import storage.InvestorFile;
+import trading.Tradable;
+
+public class MainMenu {
+    private final StockMenu stockMenu;
+    private final TradingMenu tradingMenu;
+    private final TransactionHistoryMenu transactionHistoryMenu;
+    private final PriceAlertMenu priceAlertMenu;
+    private final WatchlistMenu watchlistMenu;
+    private final InvestorFile investorFile;
+
+    public MainMenu(
+            StockMenu stockMenu,
+            TradingMenu tradingMenu,
+            TransactionHistoryMenu transactionHistoryMenu,
+            PriceAlertMenu priceAlertMenu,
+            WatchlistMenu watchlistMenu,
+            InvestorFile investorFile) {
+        this.stockMenu = stockMenu;
+        this.tradingMenu = tradingMenu;
+        this.transactionHistoryMenu = transactionHistoryMenu;
+        this.priceAlertMenu = priceAlertMenu;
+        this.watchlistMenu = watchlistMenu;
+        this.investorFile = investorFile;
+    }
+
+    public void show(
+            Scanner input,
+            Investor investor,
+            Tradable broker) throws IOException {
+
+        boolean loggedIn = true;
+
+        while (loggedIn) {
+            System.out.println("\n=== AlgoTrade Main Menu ===");
+            System.out.printf("Available demo cash: INR %,.2f%n",
+                    investor.getAvailableCash());
+            System.out.println("1. View market stocks");
+            System.out.println("2. Buy stocks");
+            System.out.println("3. Sell stocks");
+            System.out.println("4. View portfolio report");
+            System.out.println("5. View portfolio analytics");
+            System.out.println("6. View transaction history");
+            System.out.println("7. Buy multiple stocks");
+            System.out.println("8. Manage watchlist");
+            System.out.println("9. Manage price alerts");
+            System.out.println("10. Log out");
+            System.out.println("11. Search stocks");
+            System.out.print("Choose an option: ");
+
+            String choice = input.nextLine().trim();
+
+            switch (choice) {
+                case "1" -> stockMenu.showStocks(input);
+                case "2" -> tradingMenu.buyStock(input, investor, broker);
+                case "3" -> tradingMenu.sellStock(input, investor, broker);
+                case "4" -> investor.getPortfolio().generateReport();
+                case "5" -> investor.getPortfolio().generateAnalytics();
+                case "6" -> transactionHistoryMenu.showHistory(investor);
+                case "7" -> tradingMenu.buyMultipleStocks(
+                        input, investor, broker);
+                case "8" -> watchlistMenu.manage(input, investor);
+                case "9" -> priceAlertMenu.manage(input, investor);
+
+                case "10" -> {
+                    investorFile.saveInvestor(investor);
+                    loggedIn = false;
+                    System.out.println(
+                            "Your data was saved. You have logged out.");
+                }
+                case "11" -> stockMenu.searchStocks(input);
+                default -> System.out.println("Please choose a number from 1 to 11.");
+            }
+        }
+    }
+}

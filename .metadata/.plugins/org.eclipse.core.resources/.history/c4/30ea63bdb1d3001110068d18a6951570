@@ -1,0 +1,101 @@
+package algotrade;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class Broker implements Tradable {
+    private final StockMarket stockMarket;
+    private final List<Transaction> transactions = new ArrayList<>();
+
+    public Broker(StockMarket stockMarket) {
+        if (stockMarket == null) {
+            throw new IllegalArgumentException(
+                    "Stock market cannot be empty.");
+        }
+
+        this.stockMarket = stockMarket;
+    }
+@Override
+    public String buyStock(
+            Investor investor,
+            String symbol,
+            int quantity) {
+
+        checkInvestorAndQuantity(investor, quantity);
+        Stock stock = findStock(symbol);
+
+        double totalCost = stock.getPrice() * quantity;
+
+        if (!investor.canAfford(totalCost)) {
+            throw new IllegalArgumentException(
+                    "Not enough demo cash for this purchase.");
+        }
+
+        investor.deductCash(totalCost);
+        investor.getPortfolio().addHolding(stock, quantity);
+
+        transactions.add(new Transaction(
+                "BUY", stock, quantity, stock.getPrice()));
+
+        return "Purchase successful: " + quantity + " shares of "
+                + stock.getSymbol() + ". Total: INR "
+                + String.format("%,.2f", totalCost);
+    }
+@Override
+    public String sellStock(
+            Investor investor,
+            String symbol,
+            int quantity) {
+
+        checkInvestorAndQuantity(investor, quantity);
+        Stock stock = findStock(symbol);
+
+        double totalValue = stock.getPrice() * quantity;
+
+        // This checks that the investor owns enough shares.
+        investor.getPortfolio().removeHolding(symbol, quantity);
+        investor.addCash(totalValue);
+
+        transactions.add(new Transaction(
+                "SELL", stock, quantity, stock.getPrice()));
+
+        return "Sale successful: " + quantity + " shares of "
+                + stock.getSymbol() + ". Total: INR "
+                + String.format("%,.2f", totalValue);
+    }
+@Override
+    public List<Transaction> getTransactions() {
+        return Collections.unmodifiableList(
+                new ArrayList<>(transactions));
+    }
+
+    private Stock findStock(String symbol) {
+        return stockMarket.findBySymbol(symbol)
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "Stock symbol not found: " + symbol));
+    }
+
+    private void checkInvestorAndQuantity(
+            Investor investor,
+            int quantity) {
+
+        if (investor == null) {
+            throw new IllegalArgumentException(
+                    "Investor cannot be empty.");
+        }
+        if (quantity <= 0) {
+            throw new IllegalArgumentException(
+                    "Quantity must be greater than zero.");
+        }
+    }
+    
+    public Transaction getLatestTransaction() {
+        if (transactions.isEmpty()) {
+            throw new IllegalStateException("There are no transactions yet.");
+        }
+
+        return transactions.get(transactions.size() - 1);
+    }
+}

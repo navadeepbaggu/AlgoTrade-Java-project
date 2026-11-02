@@ -1,0 +1,334 @@
+package ui;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
+import java.util.Scanner;
+
+import investor.Holding;
+import investor.Investor;
+import market.Stock;
+import market.StockMarket;
+import storage.InvestorFile;
+import storage.TransactionFile;
+import trading.BuyBasket;
+import trading.OrderItem;
+import trading.Tradable;
+import trading.Transaction;
+
+public class TradingMenu {
+    private final StockMenu stockMenu;
+    private final StockMarket stockMarket;
+    private final InvestorFile investorFile;
+    private final TransactionFile transactionFile;
+
+    public TradingMenu(
+            StockMenu stockMenu,
+            StockMarket stockMarket,
+            InvestorFile investorFile,
+            TransactionFile transactionFile) {
+        this.stockMenu = stockMenu;
+        this.stockMarket = stockMarket;
+        this.investorFile = investorFile;
+        this.transactionFile = transactionFile;
+    }
+
+    public void buyStock(
+            Scanner input,
+            Investor investor,
+            Tradable broker) throws IOException {
+
+    	Optional<Stock> selectedStock =
+    	        stockMenu.searchAndSelectStock(input);
+
+    	if (selectedStock.isEmpty()) {
+    	    System.out.println("Purchase cancelled.");
+    	    return;
+    	}
+
+    	Stock stock = selectedStock.get();
+    	String symbol = stock.getSymbol();
+
+        System.out.print("Enter quantity to buy: ");
+        int quantity;
+
+        try {
+            quantity = Integer.parseInt(input.nextLine().trim());
+        } catch (NumberFormatException exception) {
+            System.out.println("Quantity must be a whole number.");
+            return;
+        }
+
+        if (quantity <= 0) {
+            System.out.println(
+                    "Quantity must be greater than zero.");
+            return;
+        }
+
+        
+        double totalCost = stock.getPrice() * quantity;
+
+        System.out.println("\n=== Confirm Purchase ===");
+        System.out.println("Stock: " + stock.getCompanyName()
+                + " (" + stock.getSymbol() + ")");
+        System.out.printf("Price per share: INR %,.2f%n",
+                stock.getPrice());
+        System.out.println("Quantity: " + quantity);
+        System.out.printf("Estimated total: INR %,.2f%n", totalCost);
+
+        if (!investor.canAfford(totalCost)) {
+            System.out.println(
+                    "Purchase cancelled: not enough demo cash.");
+            return;
+        }
+
+        if (!confirm(input, "Confirm purchase? (Y/N): ")) {
+            System.out.println("Purchase cancelled.");
+            return;
+        }
+
+        try {
+            String result = broker.buyStock(investor, symbol, quantity);
+            saveLatestTransaction(investor, broker);
+            System.out.println(result);
+        } catch (IllegalArgumentException exception) {
+            System.out.println("Purchase not completed: "
+                    + exception.getMessage());
+        }
+    }
+
+    public void sellStock(
+            Scanner input,
+            Investor investor,
+            Tradable broker) throws IOException {
+
+        investor.getPortfolio().generateReport();
+
+        System.out.print("\nEnter the symbol of the stock to sell: ");
+        String symbol = input.nextLine().trim();
+
+        Optional<Stock> selectedStock =
+                stockMarket.findBySymbol(symbol);
+
+        if (selectedStock.isEmpty()) {
+            System.out.println(
+                    "That stock symbol is not in the market list.");
+            return;
+        }
+
+        int ownedQuantity = 0;
+
+        for (Holding holding : investor.getPortfolio().getHoldings()) {
+            if (holding.getStock().getSymbol()
+                    .equalsIgnoreCase(symbol)) {
+                ownedQuantity = holding.getQuantity();
+                break;
+            }
+        }
+
+        if (ownedQuantity == 0) {
+            System.out.println(
+                    "You do not own any shares of " + symbol + ".");
+            return;
+        }
+
+        System.out.println("You currently own " + ownedQuantity
+                + " shares of " + selectedStock.get().getSymbol() + ".");
+
+        System.out.print("Enter quantity to sell: ");
+        int quantity;
+
+        try {
+            quantity = Integer.parseInt(input.nextLine().trim());
+        } catch (NumberFormatException exception) {
+            System.out.println("Quantity must be a whole number.");
+            return;
+        }
+
+        if (quantity <= 0) {
+            System.out.println(
+                    "Quantity must be greater than zero.");
+            return;
+        }
+
+        if (quantity > ownedQuantity) {
+            System.out.println(
+                    "You cannot sell more shares than you own.");
+            return;
+        }
+
+        Stock stock = selectedStock.get();
+        double estimatedProceeds = stock.getPrice() * quantity;
+
+        System.out.println("\n=== Confirm Sale ===");
+        System.out.println("Stock: " + stock.getCompanyName()
+                + " (" + stock.getSymbol() + ")");
+        System.out.printf("Price per share: INR %,.2f%n",
+                stock.getPrice());
+        System.out.println("Quantity to sell: " + quantity);
+        System.out.printf("Estimated proceeds: INR %,.2f%n",
+                estimatedProceeds);
+
+        if (!confirm(input, "Confirm sale? (Y/N): ")) {
+            System.out.println("Sale cancelled.");
+            return;
+        }
+
+        try {
+            String result = broker.sellStock(investor, symbol, quantity);
+            saveLatestTransaction(investor, broker);
+            System.out.println(result);
+        } catch (IllegalArgumentException exception) {
+            System.out.println("Sale not completed: "
+                    + exception.getMessage());
+        }
+    }
+
+    public void buyMultipleStocks(
+            Scanner input,
+            Investor investor,
+            Tradable broker) throws IOException {
+
+        BuyBasket basket = new BuyBasket();
+        boolean finishedAdding = false;
+
+        while (!finishedAdding) {
+            stockMenu.displayStocks();
+
+            System.out.print(
+                    "Enter a stock symbol, or type DONE to review the basket: ");
+            String symbol = input.nextLine().trim();
+
+            if (symbol.equalsIgnoreCase("DONE")) {
+                finishedAdding = true;
+                continue;
+            }
+
+            Optional<Stock> selectedStock =
+                    stockMarket.findBySymbol(symbol);
+
+            if (selectedStock.isEmpty()) {
+                System.out.println(
+                        "That stock symbol is not in the market list.");
+                continue;
+            }
+
+            System.out.print("Enter quantity to buy: ");
+            int quantity;
+
+            try {
+                quantity = Integer.parseInt(input.nextLine().trim());
+            } catch (NumberFormatException exception) {
+                System.out.println("Quantity must be a whole number.");
+                continue;
+            }
+
+            if (quantity <= 0) {
+                System.out.println(
+                        "Quantity must be greater than zero.");
+                continue;
+            }
+
+            basket.addStock(selectedStock.get(), quantity);
+            System.out.println("Stock added to the basket.");
+
+            while (true) {
+                System.out.print("Add another stock? (Y/N): ");
+                String answer = input.nextLine().trim();
+
+                if (answer.equalsIgnoreCase("Y")) {
+                    break;
+                }
+
+                if (answer.equalsIgnoreCase("N")) {
+                    finishedAdding = true;
+                    break;
+                }
+
+                System.out.println("Please enter Y or N.");
+            }
+        }
+
+        if (basket.isEmpty()) {
+            System.out.println(
+                    "The basket is empty. No purchases were made.");
+            return;
+        }
+
+        System.out.println("\n=== Review Buy Basket ===");
+
+        for (OrderItem item : basket.getItems()) {
+            System.out.printf(
+                    "%-12s | %3d shares | INR %,.2f per share | Subtotal: INR %,.2f%n",
+                    item.getStock().getSymbol(),
+                    item.getQuantity(),
+                    item.getStock().getPrice(),
+                    item.getSubtotal());
+        }
+
+        double total = basket.getEstimatedTotal();
+
+        System.out.printf("Combined estimated cost: INR %,.2f%n", total);
+        System.out.printf("Available demo cash: INR %,.2f%n",
+                investor.getAvailableCash());
+
+        if (!investor.canAfford(total)) {
+            System.out.println(
+                    "The basket costs more than your available demo cash. "
+                            + "No purchases were made.");
+            return;
+        }
+
+        if (!confirm(input, "Confirm all purchases? (Y/N): ")) {
+            System.out.println(
+                    "Basket cancelled. No purchases were made.");
+            return;
+        }
+
+        for (OrderItem item : basket.getItems()) {
+            try {
+                String result = broker.buyStock(
+                        investor,
+                        item.getStock().getSymbol(),
+                        item.getQuantity());
+
+                saveLatestTransaction(investor, broker);
+                System.out.println(result);
+            } catch (IllegalArgumentException exception) {
+                System.out.println("Could not buy "
+                        + item.getStock().getSymbol() + ": "
+                        + exception.getMessage());
+            }
+        }
+    }
+
+    private boolean confirm(Scanner input, String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            String answer = input.nextLine().trim();
+
+            if (answer.equalsIgnoreCase("Y")) {
+                return true;
+            }
+
+            if (answer.equalsIgnoreCase("N")) {
+                return false;
+            }
+
+            System.out.println("Please enter Y or N.");
+        }
+    }
+
+    private void saveLatestTransaction(
+            Investor investor,
+            Tradable broker) throws IOException {
+
+        List<Transaction> transactions = broker.getTransactions();
+        Transaction latestTransaction =
+                transactions.get(transactions.size() - 1);
+
+        transactionFile.saveTransaction(
+                investor.getUsername(), latestTransaction);
+        investorFile.saveInvestor(investor);
+    }
+}

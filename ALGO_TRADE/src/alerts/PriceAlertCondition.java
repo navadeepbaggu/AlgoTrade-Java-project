@@ -1,0 +1,6 @@
+package alerts;
+
+@FunctionalInterface
+public interface PriceAlertCondition {
+    boolean isTriggered(double currentPrice, double targetPrice);
+}

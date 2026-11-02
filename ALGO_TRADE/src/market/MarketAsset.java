@@ -1,0 +1,27 @@
+package market;
+
+public abstract class MarketAsset {
+    private final String symbol;
+    private final String companyName;
+    private final double price;
+
+    protected MarketAsset(String symbol,String companyName,double price) {
+        this.symbol = symbol;
+        this.companyName = companyName;
+        this.price = price;
+    }
+
+    public String getSymbol() {
+        return symbol;
+    }
+
+    public String getCompanyName() {
+        return companyName;
+    }
+
+    public double getPrice() {
+        return price;
+    }
+
+    public abstract double calculateValue(int quantity);
+}

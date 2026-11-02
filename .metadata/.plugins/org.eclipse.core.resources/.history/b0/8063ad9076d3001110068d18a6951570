@@ -1,0 +1,116 @@
+package algotrade;
+
+import java.io.IOException;
+import java.util.Optional;
+import java.util.Scanner;
+
+public class LoginDemo {
+
+    public static void main(String[] args) {
+        AccountFile accountFile = new AccountFile();
+        PasswordHelper passwordHelper = new PasswordHelper();
+        LoginService loginService =
+                new LoginService(accountFile, passwordHelper);
+
+        StockMarket stockMarket = new StockMarket();
+        StockMenu stockMenu = new StockMenu(stockMarket);
+
+        try (Scanner input = new Scanner(System.in)) {
+            boolean running = true;
+
+            while (running) {
+                System.out.println("\n=== AlgoTrade ===");
+                System.out.println("1. Register");
+                System.out.println("2. Log in");
+                System.out.println("3. Exit");
+                System.out.print("Choose an option: ");
+
+                String choice = input.nextLine().trim();
+
+                try {
+                    switch (choice) {
+                        case "1" -> register(input, loginService);
+                        case "2" -> {
+                            boolean loggedIn = login(input, loginService);
+
+                            if (loggedIn) {
+                                showMainMenu(input, stockMenu);
+                            }
+                        }
+                        case "3" -> {
+                            running = false;
+                            System.out.println("Goodbye!");
+                        }
+                        default -> System.out.println(
+                                "Please choose 1, 2, or 3.");
+                    }
+                } catch (IOException exception) {
+                    System.out.println("Could not access the account file: "
+                            + exception.getMessage());
+                }
+            }
+        }
+    }
+
+    private static void register(
+            Scanner input,
+            LoginService loginService) throws IOException {
+
+        System.out.print("Choose a username: ");
+        String username = input.nextLine().trim();
+
+        System.out.print("Choose a password (at least 8 characters): ");
+        String password = input.nextLine();
+
+        String result = loginService.register(username, password);
+        System.out.println(result);
+    }
+
+    private static boolean login(
+            Scanner input,
+            LoginService loginService) throws IOException {
+
+        System.out.print("Username: ");
+        String username = input.nextLine().trim();
+
+        System.out.print("Password: ");
+        String password = input.nextLine();
+
+        Optional<UserAccount> account =
+                loginService.login(username, password);
+
+        if (account.isPresent()) {
+            System.out.println(
+                    "\nWelcome, " + account.get().getUsername() + "!");
+            return true;
+        }
+
+        System.out.println("Username or password is incorrect.");
+        return false;
+    }
+
+    private static void showMainMenu(
+            Scanner input,
+            StockMenu stockMenu) {
+
+        boolean loggedIn = true;
+
+        while (loggedIn) {
+            System.out.println("\n=== AlgoTrade Main Menu ===");
+            System.out.println("1. View market stocks");
+            System.out.println("2. Log out");
+            System.out.print("Choose an option: ");
+
+            String choice = input.nextLine().trim();
+
+            switch (choice) {
+            case "1" -> stockMenu.showStocks(input);
+                case "2" -> {
+                    loggedIn = false;
+                    System.out.println("You have logged out.");
+                }
+                default -> System.out.println("Please choose 1 or 2.");
+            }
+        }
+    }
+}

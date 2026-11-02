@@ -1,0 +1,200 @@
+package app;
+
+import java.io.IOException;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Optional;
+import java.util.Scanner;
+import ui.TradingMenu;
+import ui.WatchlistMenu;
+import auth.LoginService;
+import auth.PasswordHelper;
+import auth.UserAccount;
+import ui.TransactionHistoryMenu;
+import investor.Investor;
+
+import market.StockMarket;
+import storage.AccountFile;
+import storage.InvestorFile;
+import storage.TransactionFile;
+import trading.Broker;
+
+import trading.Tradable;
+import trading.Transaction;
+import ui.StockMenu;
+import ui.PriceAlertMenu;
+public class LoginDemo {
+
+    public static void main(String[] args) {
+        AccountFile accountFile = new AccountFile();
+        PasswordHelper passwordHelper = new PasswordHelper();
+        LoginService loginService =
+                new LoginService(accountFile, passwordHelper);
+
+        StockMarket stockMarket = new StockMarket();
+        StockMenu stockMenu = new StockMenu(stockMarket);
+        InvestorFile investorFile = new InvestorFile();
+        WatchlistMenu watchlistMenu =
+                new WatchlistMenu(stockMenu, stockMarket, investorFile);
+        PriceAlertMenu priceAlertMenu =
+                new PriceAlertMenu(stockMenu, stockMarket, investorFile);
+        TransactionFile transactionFile = new TransactionFile();
+        TransactionHistoryMenu transactionHistoryMenu =
+                new TransactionHistoryMenu(transactionFile, stockMarket);
+        TradingMenu tradingMenu = new TradingMenu(
+                stockMenu, stockMarket, investorFile, transactionFile);
+
+        try (Scanner input = new Scanner(System.in)) {
+            boolean running = true;
+
+            while (running) {
+                System.out.println("\n=== AlgoTrade ===");
+                System.out.println("1. Register");
+                System.out.println("2. Log in");
+                System.out.println("3. Exit");
+                System.out.print("Choose an option: ");
+
+                String choice = input.nextLine().trim();
+
+                try {
+                    switch (choice) {
+                        case "1" -> register(input, loginService);
+
+                        case "2" -> {
+                            Optional<UserAccount> account =
+                                    login(input, loginService);
+
+                            if (account.isPresent()) {
+                                Investor investor =
+                                        investorFile.loadInvestor(
+                                                account.get(), stockMarket);
+                                Tradable broker = new Broker(stockMarket);
+
+                                showMainMenu(
+                                        input,
+                                        stockMenu,
+                                        tradingMenu,
+                                        transactionHistoryMenu,
+                                        priceAlertMenu,watchlistMenu,
+                                        investor,
+                                        investorFile,
+                                        transactionFile,
+                                        broker,
+                                        stockMarket);
+                            }
+                        }
+
+                        case "3" -> {
+                            running = false;
+                            System.out.println("Goodbye!");
+                        }
+
+                        default -> System.out.println(
+                                "Please choose 1, 2, or 3.");
+                    }
+                } catch (IOException exception) {
+                    System.out.println("Could not read or save project data: "
+                            + exception.getMessage());
+                }
+            }
+        }
+    }
+
+    private static void register(
+            Scanner input,
+            LoginService loginService) throws IOException {
+
+        System.out.print("Choose a username: ");
+        String username = input.nextLine().trim();
+
+        System.out.print("Choose a password (at least 8 characters): ");
+        String password = input.nextLine();
+
+        System.out.println(loginService.register(username, password));
+    }
+
+    private static Optional<UserAccount> login(
+            Scanner input,
+            LoginService loginService) throws IOException {
+
+        System.out.print("Username: ");
+        String username = input.nextLine().trim();
+
+        System.out.print("Password: ");
+        String password = input.nextLine();
+
+        Optional<UserAccount> account =
+                loginService.login(username, password);
+
+        if (account.isPresent()) {
+            System.out.println(
+                    "\nWelcome, " + account.get().getUsername() + "!");
+        } else {
+            System.out.println("Username or password is incorrect.");
+        }
+
+        return account;
+    }
+
+    private static void showMainMenu(
+            Scanner input,
+            StockMenu stockMenu,
+            TradingMenu tradingMenu,
+            TransactionHistoryMenu transactionHistoryMenu,
+            PriceAlertMenu priceAlertMenu,
+            WatchlistMenu watchlistMenu,
+            Investor investor,
+            InvestorFile investorFile,
+            TransactionFile transactionFile,
+            Tradable broker,
+            StockMarket stockMarket) throws IOException {
+
+        boolean loggedIn = true;
+
+        while (loggedIn) {
+            System.out.println("\n=== AlgoTrade Main Menu ===");
+            System.out.printf("Available demo cash: INR %,.2f%n",
+                    investor.getAvailableCash());
+            System.out.println("1. View market stocks");
+            System.out.println("2. Buy stocks");
+            System.out.println("3. Sell stocks");
+            System.out.println("4. View portfolio report");
+            System.out.println("5. View portfolio analytics");
+            System.out.println("6. View transaction history");
+            System.out.println("7. Buy multiple stocks");
+            System.out.println("8. Manage watchlist");
+            System.out.println("9. Manage price alerts");
+            System.out.println("10. Log out");
+            System.out.print("Choose an option: ");
+
+            String choice = input.nextLine().trim();
+
+            switch (choice) {
+                case "1" -> stockMenu.showStocks(input);
+
+                case "2" -> tradingMenu.buyStock(input, investor, broker);
+
+                case "3" -> tradingMenu.sellStock(input, investor, broker);
+
+                case "4" -> investor.getPortfolio().generateReport();
+
+                case "5" -> investor.getPortfolio().generateAnalytics();
+
+                case "6" -> transactionHistoryMenu.showHistory(investor);
+
+                case "7" -> tradingMenu.buyMultipleStocks(input, investor, broker);
+                case "8" -> watchlistMenu.manage(input, investor);
+
+                case "9" -> priceAlertMenu.manage(input, investor);
+
+                case "10" -> {
+                    investorFile.saveInvestor(investor);
+                    loggedIn = false;
+                    System.out.println("Your data was saved. You have logged out.");
+                }
+
+                default -> System.out.println("Please choose a number from 1 to 10.");
+            }
+        }
+    }
+}

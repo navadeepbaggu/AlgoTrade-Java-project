@@ -1,0 +1,67 @@
+package algotrade;
+
+public class AccountFile {
+	package algotrade;
+
+	import java.io.BufferedReader;
+	import java.io.BufferedWriter;
+	import java.io.IOException;
+	import java.nio.charset.StandardCharsets;
+	import java.nio.file.Files;
+	import java.nio.file.Path;
+	import java.nio.file.StandardOpenOption;
+	import java.util.ArrayList;
+	import java.util.List;
+
+	public class AccountFile {
+	    private final Path filePath;
+
+	    public AccountFile() {
+	        this.filePath = Path.of("D:/AlgoTradeData/accounts.txt");
+	    }
+
+	    public List<UserAccount> loadAccounts() throws IOException {
+	        List<UserAccount> accounts = new ArrayList<>();
+
+	        if (Files.notExists(filePath)) {
+	            return accounts;
+	        }
+
+	        try (BufferedReader reader = Files.newBufferedReader(
+	                filePath, StandardCharsets.UTF_8)) {
+
+	            String line;
+
+	            while ((line = reader.readLine()) != null) {
+	                String[] parts = line.split("\\|", -1);
+
+	                if (parts.length == 3) {
+	                    accounts.add(new UserAccount(parts[0], parts[1], parts[2]));
+	                }
+	            }
+	        }
+
+	        return accounts;
+	    }
+
+	    public void saveAccount(UserAccount account) throws IOException {
+	        Path parentFolder = filePath.getParent();
+
+	        if (parentFolder != null) {
+	            Files.createDirectories(parentFolder);
+	        }
+
+	        try (BufferedWriter writer = Files.newBufferedWriter(
+	                filePath,
+	                StandardCharsets.UTF_8,
+	                StandardOpenOption.CREATE,
+	                StandardOpenOption.APPEND)) {
+
+	            writer.write(account.getUsername() + "|"
+	                    + account.getSalt() + "|"
+	                    + account.getPasswordHash());
+	            writer.newLine();
+	        }
+	    }
+	}
+}

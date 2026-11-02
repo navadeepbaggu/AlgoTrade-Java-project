@@ -1,0 +1,136 @@
+package investor;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
+import algotrade.ReportGenerator;
+import market.Stock;
+
+public class Portfolio implements ReportGenerator {
+    private final List<Holding> holdings = new ArrayList<>();
+
+    public List<Holding> getHoldings() {
+        return Collections.unmodifiableList(
+                new ArrayList<>(holdings));
+    }
+
+    // Called after the Broker successfully processes a purchase.
+    public void addHolding(Stock stock, int quantity) {
+        if (stock == null) {
+            throw new IllegalArgumentException("Stock cannot be empty.");
+        }
+        if (quantity <= 0) {
+            throw new IllegalArgumentException(
+                    "Quantity must be greater than zero.");
+        }
+
+        Holding existingHolding = findHolding(stock.getSymbol());
+
+        if (existingHolding != null) {
+            existingHolding.addShares(quantity);
+        } else {
+            holdings.add(new Holding(stock, quantity));
+        }
+    }
+
+    // Called after the Broker successfully processes a sale.
+    public void removeHolding(String symbol, int quantity) {
+        if (symbol == null || symbol.isBlank()) {
+            throw new IllegalArgumentException("Stock symbol cannot be empty.");
+        }
+
+        Holding holding = findHolding(symbol);
+
+        if (holding == null) {
+            throw new IllegalArgumentException(
+                    "You do not own shares of " + symbol + ".");
+        }
+
+        holding.removeShares(quantity);
+
+        holdings.removeIf(item ->
+                item.getQuantity() == 0
+                        && item.getStock().getSymbol().equalsIgnoreCase(symbol));
+    }
+
+    public boolean hasStock(String symbol) {
+        return findHolding(symbol) != null;
+    }
+
+    public double getTotalValue() {
+        double total = 0;
+
+        for (Holding holding : holdings) {
+            total += holding.getMarketValue();
+        }
+
+        return total;
+    }
+
+    private Holding findHolding(String symbol) {
+        for (Holding holding : holdings) {
+            if (holding.getStock().getSymbol().equalsIgnoreCase(symbol)) {
+                return holding;
+            }
+        }
+
+        return null;
+    }
+
+    @Override
+    public void generateReport() {
+        System.out.println("\n=== Portfolio Report ===");
+
+        if (holdings.isEmpty()) {
+            System.out.println("Your portfolio is currently empty.");
+            return;
+        }
+
+        List<Holding> sortedHoldings = new ArrayList<>(holdings);
+        Collections.sort(sortedHoldings);
+
+        System.out.printf("%-14s %-32s %10s %16s%n",
+                "Symbol", "Company", "Quantity", "Value (INR)");
+        System.out.println("--------------------------------------------------------------------------");
+
+        for (Holding holding : sortedHoldings) {
+            System.out.printf("%-14s %-32s %10d ₹%,14.2f%n",
+                    holding.getStock().getSymbol(),
+                    holding.getStock().getCompanyName(),
+                    holding.getQuantity(),
+                    holding.getMarketValue());
+        }
+
+        System.out.println("--------------------------------------------------------------------------");
+        System.out.printf("Total portfolio value: ₹%,.2f%n", getTotalValue());
+    }
+
+    @Override
+    public void generateAnalytics() {
+        if (holdings.isEmpty()) {
+            System.out.println("There are no holdings to analyze yet.");
+            return;
+        }
+
+        Comparator<Holding> valueComparator =
+                (first, second) -> Double.compare(
+                        first.getMarketValue(),
+                        second.getMarketValue());
+
+        Holding largest = Collections.max(holdings, valueComparator);
+        Holding smallest = Collections.min(holdings, valueComparator);
+
+        String word = holdings.size() == 1 ? "holding" : "holdings";
+
+        System.out.println("\n=== Portfolio Analytics ===");
+        System.out.println("Number of " + word + ": " + holdings.size());
+        System.out.println("Largest position: "
+                + largest.getStock().getSymbol()
+                + " (INR " + String.format("%,.2f", largest.getMarketValue()) + ")");
+        System.out.println("Smallest position: "
+                + smallest.getStock().getSymbol()
+                + " (INR " + String.format("%,.2f", smallest.getMarketValue()) + ")");
+    }
+}

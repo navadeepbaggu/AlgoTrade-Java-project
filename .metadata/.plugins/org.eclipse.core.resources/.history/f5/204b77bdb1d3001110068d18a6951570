@@ -1,0 +1,40 @@
+package algotrade;
+
+public class OrderItem {
+    private final Stock stock;
+    private int quantity;
+
+    public OrderItem(Stock stock, int quantity) {
+        if (stock == null) {
+            throw new IllegalArgumentException("Stock cannot be empty.");
+        }
+        if (quantity <= 0) {
+            throw new IllegalArgumentException(
+                    "Quantity must be greater than zero.");
+        }
+
+        this.stock = stock;
+        this.quantity = quantity;
+    }
+
+    public Stock getStock() {
+        return stock;
+    }
+
+    public int getQuantity() {
+        return quantity;
+    }
+
+    public void addQuantity(int amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException(
+                    "Quantity must be greater than zero.");
+        }
+
+        quantity += amount;
+    }
+
+    public double getSubtotal() {
+        return stock.getPrice() * quantity;
+    }
+}

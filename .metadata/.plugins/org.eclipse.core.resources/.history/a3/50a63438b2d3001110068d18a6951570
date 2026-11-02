@@ -1,0 +1,76 @@
+package investor;
+
+import algotrade.PriceAlertManager;
+import algotrade.Watchlist;
+import auth.UserAccount;
+
+public class Investor {
+    private final UserAccount userAccount;
+    private final Portfolio portfolio;
+    private final Watchlist watchlist;
+    private final PriceAlertManager priceAlertManager;
+    private double availableCash;
+
+    public Investor(UserAccount userAccount, double startingCash) {
+        if (userAccount == null) {
+            throw new IllegalArgumentException(
+                    "User account cannot be empty.");
+        }
+        if (startingCash < 0) {
+            throw new IllegalArgumentException(
+                    "Starting cash cannot be negative.");
+        }
+
+        this.userAccount = userAccount;
+        this.portfolio = new Portfolio();
+        this.watchlist = new Watchlist();
+        this.priceAlertManager = new PriceAlertManager();
+        this.availableCash = startingCash;
+    }
+
+    public String getUsername() {
+        return userAccount.getUsername();
+    }
+
+    public Portfolio getPortfolio() {
+        return portfolio;
+    }
+
+    public Watchlist getWatchlist() {
+        return watchlist;
+    }
+
+    public PriceAlertManager getPriceAlertManager() {
+        return priceAlertManager;
+    }
+
+    public double getAvailableCash() {
+        return availableCash;
+    }
+
+    public boolean canAfford(double amount) {
+        return amount > 0 && availableCash >= amount;
+    }
+
+    public void deductCash(double amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException(
+                    "Amount must be greater than zero.");
+        }
+        if (amount > availableCash) {
+            throw new IllegalArgumentException(
+                    "There is not enough cash for this purchase.");
+        }
+
+        availableCash -= amount;
+    }
+
+    public void addCash(double amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException(
+                    "Amount must be greater than zero.");
+        }
+
+        availableCash += amount;
+    }
+}

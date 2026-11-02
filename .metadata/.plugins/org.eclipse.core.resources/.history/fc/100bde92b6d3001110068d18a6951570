@@ -1,0 +1,822 @@
+package app;
+
+import java.io.IOException;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Optional;
+import java.util.Scanner;
+
+import alerts.PriceAlert;
+import auth.LoginService;
+import auth.PasswordHelper;
+import auth.UserAccount;
+import investor.Holding;
+import investor.Investor;
+import market.Stock;
+import market.StockMarket;
+import storage.AccountFile;
+import storage.InvestorFile;
+import storage.TransactionFile;
+import trading.Broker;
+import trading.BuyBasket;
+import trading.OrderItem;
+import trading.Tradable;
+import trading.Transaction;
+import ui.StockMenu;
+import ui.PriceAlertMenu;
+public class LoginDemo {
+
+    public static void main(String[] args) {
+        AccountFile accountFile = new AccountFile();
+        PasswordHelper passwordHelper = new PasswordHelper();
+        LoginService loginService =
+                new LoginService(accountFile, passwordHelper);
+
+        StockMarket stockMarket = new StockMarket();
+        StockMenu stockMenu = new StockMenu(stockMarket);
+        InvestorFile investorFile = new InvestorFile();
+        PriceAlertMenu priceAlertMenu =
+                new PriceAlertMenu(stockMenu, stockMarket, investorFile);
+        TransactionFile transactionFile = new TransactionFile();
+
+        try (Scanner input = new Scanner(System.in)) {
+            boolean running = true;
+
+            while (running) {
+                System.out.println("\n=== AlgoTrade ===");
+                System.out.println("1. Register");
+                System.out.println("2. Log in");
+                System.out.println("3. Exit");
+                System.out.print("Choose an option: ");
+
+                String choice = input.nextLine().trim();
+
+                try {
+                    switch (choice) {
+                        case "1" -> register(input, loginService);
+
+                        case "2" -> {
+                            Optional<UserAccount> account =
+                                    login(input, loginService);
+
+                            if (account.isPresent()) {
+                                Investor investor =
+                                        investorFile.loadInvestor(
+                                                account.get(), stockMarket);
+                                Tradable broker = new Broker(stockMarket);
+
+                                showMainMenu(
+                                        input,
+                                        stockMenu,priceAlertMenu,
+                                        investor,
+                                        investorFile,
+                                        transactionFile,
+                                        broker,
+                                        stockMarket);
+                            }
+                        }
+
+                        case "3" -> {
+                            running = false;
+                            System.out.println("Goodbye!");
+                        }
+
+                        default -> System.out.println(
+                                "Please choose 1, 2, or 3.");
+                    }
+                } catch (IOException exception) {
+                    System.out.println("Could not read or save project data: "
+                            + exception.getMessage());
+                }
+            }
+        }
+    }
+
+    private static void register(
+            Scanner input,
+            LoginService loginService) throws IOException {
+
+        System.out.print("Choose a username: ");
+        String username = input.nextLine().trim();
+
+        System.out.print("Choose a password (at least 8 characters): ");
+        String password = input.nextLine();
+
+        System.out.println(loginService.register(username, password));
+    }
+
+    private static Optional<UserAccount> login(
+            Scanner input,
+            LoginService loginService) throws IOException {
+
+        System.out.print("Username: ");
+        String username = input.nextLine().trim();
+
+        System.out.print("Password: ");
+        String password = input.nextLine();
+
+        Optional<UserAccount> account =
+                loginService.login(username, password);
+
+        if (account.isPresent()) {
+            System.out.println(
+                    "\nWelcome, " + account.get().getUsername() + "!");
+        } else {
+            System.out.println("Username or password is incorrect.");
+        }
+
+        return account;
+    }
+
+    private static void showMainMenu(
+            Scanner input,
+            StockMenu stockMenu,
+            PriceAlertMenu priceAlertMenu,
+            Investor investor,
+            InvestorFile investorFile,
+            TransactionFile transactionFile,
+            Tradable broker,
+            StockMarket stockMarket) throws IOException {
+
+        boolean loggedIn = true;
+
+        while (loggedIn) {
+            System.out.println("\n=== AlgoTrade Main Menu ===");
+            System.out.printf("Available demo cash: INR %,.2f%n",
+                    investor.getAvailableCash());
+            System.out.println("1. View market stocks");
+            System.out.println("2. Buy stocks");
+            System.out.println("3. Sell stocks");
+            System.out.println("4. View portfolio report");
+            System.out.println("5. View portfolio analytics");
+            System.out.println("6. View transaction history");
+            System.out.println("7. Buy multiple stocks");
+            System.out.println("8. Manage watchlist");
+            System.out.println("9. Manage price alerts");
+            System.out.println("10. Log out");
+            System.out.print("Choose an option: ");
+
+            String choice = input.nextLine().trim();
+
+            switch (choice) {
+                case "1" -> stockMenu.showStocks(input);
+
+                case "2" -> buyStock(
+                        input,stockMenu, stockMarket, investor, broker, investorFile, transactionFile);
+
+                case "3" -> sellStock(
+                        input,stockMarket, investor, broker, investorFile, transactionFile);
+
+                case "4" -> investor.getPortfolio().generateReport();
+
+                case "5" -> investor.getPortfolio().generateAnalytics();
+
+                case "6" -> showTransactions(
+                        transactionFile, investor, stockMarket);
+
+                case "7" -> buyMultipleStocks(
+                        input, stockMenu, stockMarket, investor,
+                        broker, investorFile, transactionFile);
+
+                case "8" -> manageWatchlist(
+                        input, stockMenu, stockMarket, investor, investorFile);
+
+                case "9" -> managePriceAlerts(
+                        input, stockMenu, stockMarket, investor, investorFile);
+
+                case "10" -> {
+                    investorFile.saveInvestor(investor);
+                    loggedIn = false;
+                    System.out.println("Your data was saved. You have logged out.");
+                }
+
+                default -> System.out.println("Please choose a number from 1 to 10.");
+            }
+        }
+    }
+
+    private static void buyStock(
+            Scanner input,
+            StockMenu stockMenu,
+            StockMarket stockMarket,
+            Investor investor,
+            Tradable broker,
+            InvestorFile investorFile,
+            TransactionFile transactionFile) throws IOException {
+
+        stockMenu.displayStocks();
+
+        System.out.print("Enter the symbol of the stock to buy: ");
+        String symbol = input.nextLine().trim();
+
+        Optional<Stock> selectedStock = stockMarket.findBySymbol(symbol);
+
+        if (selectedStock.isEmpty()) {
+            System.out.println("That stock symbol is not in the market list.");
+            return;
+        }
+
+        System.out.print("Enter quantity to buy: ");
+        int quantity;
+
+        try {
+            quantity = Integer.parseInt(input.nextLine().trim());
+        } catch (NumberFormatException exception) {
+            System.out.println("Quantity must be a whole number.");
+            return;
+        }
+
+        if (quantity <= 0) {
+            System.out.println("Quantity must be greater than zero.");
+            return;
+        }
+
+        Stock stock = selectedStock.get();
+        double totalCost = stock.getPrice() * quantity;
+
+        System.out.println("\n=== Confirm Purchase ===");
+        System.out.println("Stock: " + stock.getCompanyName()
+                + " (" + stock.getSymbol() + ")");
+        System.out.printf("Price per share: INR %,.2f%n", stock.getPrice());
+        System.out.println("Quantity: " + quantity);
+        System.out.printf("Estimated total: INR %,.2f%n", totalCost);
+
+        if (!investor.canAfford(totalCost)) {
+            System.out.println("Purchase cancelled: not enough demo cash.");
+            return;
+        }
+
+        while (true) {
+            System.out.print("Confirm purchase? (Y/N): ");
+            String answer = input.nextLine().trim();
+
+            if (answer.equalsIgnoreCase("N")) {
+                System.out.println("Purchase cancelled.");
+                return;
+            }
+
+            if (answer.equalsIgnoreCase("Y")) {
+                break;
+            }
+
+            System.out.println("Please enter Y for yes or N for no.");
+        }
+
+        try {
+            String result = broker.buyStock(investor, symbol, quantity);
+
+            List<Transaction> transactions = broker.getTransactions();
+            Transaction latestTransaction =
+                    transactions.get(transactions.size() - 1);
+
+            transactionFile.saveTransaction(
+                    investor.getUsername(), latestTransaction);
+            investorFile.saveInvestor(investor);
+
+            System.out.println(result);
+        } catch (IllegalArgumentException exception) {
+            System.out.println("Purchase not completed: "
+                    + exception.getMessage());
+        }
+    }
+
+    private static void sellStock(
+            Scanner input,
+            StockMarket stockMarket,
+            Investor investor,
+            Tradable broker,
+            InvestorFile investorFile,
+            TransactionFile transactionFile) throws IOException {
+
+        investor.getPortfolio().generateReport();
+
+        System.out.print("\nEnter the symbol of the stock to sell: ");
+        String symbol = input.nextLine().trim();
+
+        Optional<Stock> selectedStock = stockMarket.findBySymbol(symbol);
+
+        if (selectedStock.isEmpty()) {
+            System.out.println("That stock symbol is not in the market list.");
+            return;
+        }
+
+        int ownedQuantity = 0;
+
+        for (Holding holding : investor.getPortfolio().getHoldings()) {
+            if (holding.getStock().getSymbol().equalsIgnoreCase(symbol)) {
+                ownedQuantity = holding.getQuantity();
+                break;
+            }
+        }
+
+        if (ownedQuantity == 0) {
+            System.out.println("You do not own any shares of " + symbol + ".");
+            return;
+        }
+
+        System.out.println("You currently own " + ownedQuantity
+                + " shares of " + selectedStock.get().getSymbol() + ".");
+
+        System.out.print("Enter quantity to sell: ");
+        int quantity;
+
+        try {
+            quantity = Integer.parseInt(input.nextLine().trim());
+        } catch (NumberFormatException exception) {
+            System.out.println("Quantity must be a whole number.");
+            return;
+        }
+
+        if (quantity <= 0) {
+            System.out.println("Quantity must be greater than zero.");
+            return;
+        }
+
+        if (quantity > ownedQuantity) {
+            System.out.println("You cannot sell more shares than you own.");
+            return;
+        }
+
+        Stock stock = selectedStock.get();
+        double estimatedProceeds = stock.getPrice() * quantity;
+
+        System.out.println("\n=== Confirm Sale ===");
+        System.out.println("Stock: " + stock.getCompanyName()
+                + " (" + stock.getSymbol() + ")");
+        System.out.printf("Price per share: INR %,.2f%n", stock.getPrice());
+        System.out.println("Quantity to sell: " + quantity);
+        System.out.printf("Estimated proceeds: INR %,.2f%n", estimatedProceeds);
+
+        while (true) {
+            System.out.print("Confirm sale? (Y/N): ");
+            String answer = input.nextLine().trim();
+
+            if (answer.equalsIgnoreCase("N")) {
+                System.out.println("Sale cancelled.");
+                return;
+            }
+
+            if (answer.equalsIgnoreCase("Y")) {
+                break;
+            }
+
+            System.out.println("Please enter Y for yes or N for no.");
+        }
+
+        try {
+            String result = broker.sellStock(investor, symbol, quantity);
+
+            List<Transaction> transactions = broker.getTransactions();
+            Transaction latestTransaction =
+                    transactions.get(transactions.size() - 1);
+
+            transactionFile.saveTransaction(
+                    investor.getUsername(), latestTransaction);
+            investorFile.saveInvestor(investor);
+
+            System.out.println(result);
+        } catch (IllegalArgumentException exception) {
+            System.out.println("Sale not completed: "
+                    + exception.getMessage());
+        }
+    }
+
+    private static void showTransactions(
+            TransactionFile transactionFile,
+            Investor investor,
+            StockMarket stockMarket) throws IOException {
+
+        List<Transaction> transactions =
+                transactionFile.loadTransactions(
+                        investor.getUsername(), stockMarket);
+
+        System.out.println("\n=== Transaction History ===");
+
+        if (transactions.isEmpty()) {
+            System.out.println("No transactions have been made yet.");
+            return;
+        }
+
+        DateTimeFormatter formatter =
+                DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
+
+        for (Transaction transaction : transactions) {
+            System.out.printf(
+                    "%s | %-4s | %-10s | %3d shares | INR %,.2f%n",
+                    transaction.getDateTime().format(formatter),
+                    transaction.getType(),
+                    transaction.getStock().getSymbol(),
+                    transaction.getQuantity(),
+                    transaction.getTotalAmount());
+        }
+    }
+    
+    private static void buyMultipleStocks(
+            Scanner input,
+            StockMenu stockMenu,
+            StockMarket stockMarket,
+            Investor investor,
+            Tradable broker,
+            InvestorFile investorFile,
+            TransactionFile transactionFile) throws IOException {
+
+        BuyBasket basket = new BuyBasket();
+        boolean finishedAdding = false;
+
+        while (!finishedAdding) {
+            stockMenu.displayStocks();
+
+            System.out.print(
+                    "Enter a stock symbol, or type DONE to review the basket: ");
+            String symbol = input.nextLine().trim();
+
+            if (symbol.equalsIgnoreCase("DONE")) {
+                finishedAdding = true;
+                continue;
+            }
+
+            Optional<Stock> selectedStock = stockMarket.findBySymbol(symbol);
+
+            if (selectedStock.isEmpty()) {
+                System.out.println("That stock symbol is not in the market list.");
+                continue;
+            }
+
+            System.out.print("Enter quantity to buy: ");
+            int quantity;
+
+            try {
+                quantity = Integer.parseInt(input.nextLine().trim());
+            } catch (NumberFormatException exception) {
+                System.out.println("Quantity must be a whole number.");
+                continue;
+            }
+
+            if (quantity <= 0) {
+                System.out.println("Quantity must be greater than zero.");
+                continue;
+            }
+
+            basket.addStock(selectedStock.get(), quantity);
+            System.out.println("Stock added to the basket.");
+
+            while (true) {
+                System.out.print("Add another stock? (Y/N): ");
+                String answer = input.nextLine().trim();
+
+                if (answer.equalsIgnoreCase("Y")) {
+                    break;
+                }
+
+                if (answer.equalsIgnoreCase("N")) {
+                    finishedAdding = true;
+                    break;
+                }
+
+                System.out.println("Please enter Y or N.");
+            }
+        }
+
+        if (basket.isEmpty()) {
+            System.out.println("The basket is empty. No purchases were made.");
+            return;
+        }
+
+        System.out.println("\n=== Review Buy Basket ===");
+
+        for (OrderItem item : basket.getItems()) {
+            System.out.printf(
+                    "%-12s | %3d shares | INR %,.2f per share | Subtotal: INR %,.2f%n",
+                    item.getStock().getSymbol(),
+                    item.getQuantity(),
+                    item.getStock().getPrice(),
+                    item.getSubtotal());
+        }
+
+        double total = basket.getEstimatedTotal();
+
+        System.out.printf("Combined estimated cost: INR %,.2f%n", total);
+        System.out.printf("Available demo cash: INR %,.2f%n",
+                investor.getAvailableCash());
+
+        if (!investor.canAfford(total)) {
+            System.out.println(
+                    "The basket costs more than your available demo cash. No purchases were made.");
+            return;
+        }
+
+        while (true) {
+            System.out.print("Confirm all purchases? (Y/N): ");
+            String answer = input.nextLine().trim();
+
+            if (answer.equalsIgnoreCase("N")) {
+                System.out.println("Basket cancelled. No purchases were made.");
+                return;
+            }
+
+            if (answer.equalsIgnoreCase("Y")) {
+                break;
+            }
+
+            System.out.println("Please enter Y or N.");
+        }
+
+        for (OrderItem item : basket.getItems()) {
+            try {
+                String result = broker.buyStock(
+                        investor,
+                        item.getStock().getSymbol(),
+                        item.getQuantity());
+
+                List<Transaction> transactions = broker.getTransactions();
+                Transaction latestTransaction =
+                        transactions.get(transactions.size() - 1);
+
+                transactionFile.saveTransaction(
+                        investor.getUsername(), latestTransaction);
+                investorFile.saveInvestor(investor);
+
+                System.out.println(result);
+            } catch (IllegalArgumentException exception) {
+                System.out.println("Could not buy "
+                        + item.getStock().getSymbol() + ": "
+                        + exception.getMessage());
+            }
+        }
+    }
+    
+    private static void manageWatchlist(
+            Scanner input,
+            StockMenu stockMenu,
+            StockMarket stockMarket,
+            Investor investor,
+            InvestorFile investorFile) throws IOException {
+
+        boolean managing = true;
+
+        while (managing) {
+            System.out.println("\n=== Watchlist ===");
+            System.out.println("1. View watchlist");
+            System.out.println("2. Add a stock");
+            System.out.println("3. Remove a stock");
+            System.out.println("0. Return to main menu");
+            System.out.print("Choose an option: ");
+
+            String choice = input.nextLine().trim();
+
+            switch (choice) {
+                case "1" -> showWatchlist(investor);
+
+                case "2" -> {
+                    stockMenu.displayStocks();
+                    System.out.print("Enter the symbol to add: ");
+                    String symbol = input.nextLine().trim();
+
+                    Optional<Stock> stock = stockMarket.findBySymbol(symbol);
+
+                    if (stock.isEmpty()) {
+                        System.out.println("That stock symbol is not in the market list.");
+                    } else if (investor.getWatchlist().addStock(stock.get())) {
+                        investorFile.saveInvestor(investor);
+                        System.out.println(symbol + " added to your watchlist.");
+                    } else {
+                        System.out.println(symbol + " is already in your watchlist.");
+                    }
+                }
+
+                case "3" -> {
+                    showWatchlist(investor);
+
+                    if (investor.getWatchlist().isEmpty()) {
+                        break;
+                    }
+
+                    System.out.print("Enter the symbol to remove: ");
+                    String symbol = input.nextLine().trim();
+
+                    try {
+                        if (investor.getWatchlist().removeStock(symbol)) {
+                            investorFile.saveInvestor(investor);
+                            System.out.println(symbol + " removed from your watchlist.");
+                        } else {
+                            System.out.println(symbol + " was not in your watchlist.");
+                        }
+                    } catch (IllegalArgumentException exception) {
+                        System.out.println(exception.getMessage());
+                    }
+                }
+
+                case "0" -> managing = false;
+
+                default -> System.out.println("Please choose 0, 1, 2, or 3.");
+            }
+        }
+    }
+
+    private static void showWatchlist(Investor investor) {
+        List<Stock> stocks = investor.getWatchlist().getStocks();
+
+        System.out.println("\n=== Your Watchlist ===");
+
+        if (stocks.isEmpty()) {
+            System.out.println("Your watchlist is empty.");
+            return;
+        }
+
+        System.out.printf("%-14s %-32s %14s%n",
+                "Symbol", "Company", "Price (INR)");
+        System.out.println("--------------------------------------------------------------");
+
+        for (Stock stock : stocks) {
+            System.out.printf("%-14s %-32s ₹%,13.2f%n",
+                    stock.getSymbol(),
+                    stock.getCompanyName(),
+                    stock.getPrice());
+        }
+    }
+    
+    private static void managePriceAlerts(
+            Scanner input,
+            StockMenu stockMenu,
+            StockMarket stockMarket,
+            Investor investor,
+            InvestorFile investorFile) throws IOException {
+
+        boolean managing = true;
+
+        while (managing) {
+            System.out.println("\n=== Price Alerts ===");
+            System.out.println("1. View alerts");
+            System.out.println("2. Add an alert");
+            System.out.println("3. Check triggered alerts");
+            System.out.println("4. Remove an alert");
+            System.out.println("0. Return to main menu");
+            System.out.print("Choose an option: ");
+
+            String choice = input.nextLine().trim();
+
+            switch (choice) {
+                case "1" -> showPriceAlerts(investor);
+
+                case "2" -> addPriceAlert(
+                        input, stockMenu, stockMarket, investor, investorFile);
+
+                case "3" -> showTriggeredAlerts(investor);
+
+                case "4" -> removePriceAlert(
+                        input, investor, investorFile);
+
+                case "0" -> managing = false;
+
+                default -> System.out.println("Please choose 0, 1, 2, 3, or 4.");
+            }
+        }
+    }
+
+    private static void addPriceAlert(
+            Scanner input,
+            StockMenu stockMenu,
+            StockMarket stockMarket,
+            Investor investor,
+            InvestorFile investorFile) throws IOException {
+
+        stockMenu.displayStocks();
+
+        System.out.print("Enter the stock symbol for the alert: ");
+        String symbol = input.nextLine().trim();
+
+        Optional<Stock> selectedStock = stockMarket.findBySymbol(symbol);
+
+        if (selectedStock.isEmpty()) {
+            System.out.println("That stock symbol is not in the market list.");
+            return;
+        }
+
+        if (!investor.getWatchlist().isWatching(symbol)) {
+            System.out.println("Add this stock to your watchlist before creating an alert.");
+            return;
+        }
+
+        System.out.print("Enter the target price: INR ");
+        double targetPrice;
+
+        try {
+            targetPrice = Double.parseDouble(input.nextLine().trim());
+        } catch (NumberFormatException exception) {
+            System.out.println("Enter a valid price.");
+            return;
+        }
+
+        if (targetPrice <= 0) {
+            System.out.println("Target price must be greater than zero.");
+            return;
+        }
+
+        System.out.println("1. Alert when price reaches or goes above target");
+        System.out.println("2. Alert when price reaches or goes below target");
+        System.out.print("Choose an alert type: ");
+        String alertChoice = input.nextLine().trim();
+
+        PriceAlert alert;
+
+        if (alertChoice.equals("1")) {
+            alert = PriceAlert.whenPriceGoesAbove(
+                    selectedStock.get(), targetPrice);
+        } else if (alertChoice.equals("2")) {
+            alert = PriceAlert.whenPriceGoesBelow(
+                    selectedStock.get(), targetPrice);
+        } else {
+            System.out.println("Please choose 1 or 2.");
+            return;
+        }
+
+        boolean added = investor.getPriceAlertManager().addAlert(alert);
+
+        if (!added) {
+            System.out.println("That alert already exists.");
+            return;
+        }
+
+        investorFile.saveInvestor(investor);
+        System.out.println("Price alert saved.");
+    }
+
+    private static void showPriceAlerts(Investor investor) {
+        List<PriceAlert> alerts =
+                investor.getPriceAlertManager().getAlerts();
+
+        System.out.println("\n=== Your Price Alerts ===");
+
+        if (alerts.isEmpty()) {
+            System.out.println("You have no price alerts.");
+            return;
+        }
+
+        for (int i = 0; i < alerts.size(); i++) {
+            PriceAlert alert = alerts.get(i);
+            String status = alert.isTriggered() ? "TRIGGERED" : "Waiting";
+
+            System.out.printf(
+                    "%d. %s | %s INR %,.2f | Current INR %,.2f | %s%n",
+                    i + 1,
+                    alert.getStock().getSymbol(),
+                    alert.getConditionName(),
+                    alert.getTargetPrice(),
+                    alert.getStock().getPrice(),
+                    status);
+        }
+    }
+
+    private static void showTriggeredAlerts(Investor investor) {
+        List<PriceAlert> triggered =
+                investor.getPriceAlertManager().getTriggeredAlerts();
+
+        System.out.println("\n=== Triggered Alerts ===");
+
+        if (triggered.isEmpty()) {
+            System.out.println("No alerts are triggered at the current sample prices.");
+            return;
+        }
+
+        for (PriceAlert alert : triggered) {
+            System.out.printf(
+                    "%s is at INR %,.2f; your %s target is INR %,.2f.%n",
+                    alert.getStock().getSymbol(),
+                    alert.getStock().getPrice(),
+                    alert.getConditionName(),
+                    alert.getTargetPrice());
+        }
+    }
+
+    private static void removePriceAlert(
+            Scanner input,
+            Investor investor,
+            InvestorFile investorFile) throws IOException {
+
+        showPriceAlerts(investor);
+
+        if (investor.getPriceAlertManager().isEmpty()) {
+            return;
+        }
+
+        System.out.print("Enter the alert number to remove: ");
+        int number;
+
+        try {
+            number = Integer.parseInt(input.nextLine().trim());
+        } catch (NumberFormatException exception) {
+            System.out.println("Enter a valid alert number.");
+            return;
+        }
+
+        try {
+            PriceAlert removed =
+                    investor.getPriceAlertManager().removeAlert(number);
+            investorFile.saveInvestor(investor);
+            System.out.println("Alert for " + removed.getStock().getSymbol()
+                    + " removed.");
+        } catch (IllegalArgumentException exception) {
+            System.out.println(exception.getMessage());
+        }
+    }
+}

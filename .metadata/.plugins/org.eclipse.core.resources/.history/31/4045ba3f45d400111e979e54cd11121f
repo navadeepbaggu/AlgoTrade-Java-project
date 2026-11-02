@@ -1,0 +1,47 @@
+package market;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Comparator;
+import java.util.Locale;
+public class StockMarket {
+    private final List<Stock> stocks = new ArrayList<>();
+
+    public StockMarket() {
+        stocks.add(new Stock("INFY", "Infosys", 1450.50));
+        stocks.add(new Stock("TCS", "Tata Consultancy Services", 3820.00));
+        stocks.add(new Stock("RELIANCE", "Reliance Industries", 2940.75));
+        stocks.add(new Stock("HDFCBANK", "HDFC Bank", 1675.25));
+    }
+
+    public List<Stock> getAllStocks() {
+        return new ArrayList<>(stocks);
+    }
+
+    public Optional<Stock> findBySymbol(String symbol) {
+        return stocks.stream()
+                .filter(stock -> stock.getSymbol().equalsIgnoreCase(symbol))
+                .findFirst();
+    }
+    public List<Stock> search(String query) {
+        if (query == null || query.isBlank()) {
+            return List.of();
+        }
+
+        String searchText = query.trim().toLowerCase(Locale.ROOT);
+
+        return stocks.stream()
+                .filter(stock ->
+                        stock.getSymbol()
+                                .toLowerCase(Locale.ROOT)
+                                .contains(searchText)
+                        || stock.getCompanyName()
+                                .toLowerCase(Locale.ROOT)
+                                .contains(searchText))
+                .sorted(Comparator.comparing(
+                        Stock::getSymbol,
+                        String.CASE_INSENSITIVE_ORDER))
+                .toList();
+    }
+}

@@ -1,0 +1,46 @@
+package ui;
+
+import java.io.IOException;
+import java.util.Optional;
+import java.util.Scanner;
+
+import auth.LoginService;
+import auth.UserAccount;
+
+public class AuthenticationMenu {
+    private final LoginService loginService;
+
+    public AuthenticationMenu(LoginService loginService) {
+        this.loginService = loginService;
+    }
+
+    public void register(Scanner input) throws IOException {
+        System.out.print("Choose a username: ");
+        String username = input.nextLine().trim();
+
+        System.out.print("Choose a password (at least 8 characters): ");
+        String password = input.nextLine();
+
+        System.out.println(loginService.register(username, password));
+    }
+
+    public Optional<UserAccount> login(Scanner input) throws IOException {
+        System.out.print("Username: ");
+        String username = input.nextLine().trim();
+
+        System.out.print("Password: ");
+        String password = input.nextLine();
+
+        Optional<UserAccount> account =
+                loginService.login(username, password);
+
+        if (account.isPresent()) {
+            System.out.println(
+                    "\nWelcome, " + account.get().getUsername() + "!");
+        } else {
+            System.out.println("Username or password is incorrect.");
+        }
+
+        return account;
+    }
+}

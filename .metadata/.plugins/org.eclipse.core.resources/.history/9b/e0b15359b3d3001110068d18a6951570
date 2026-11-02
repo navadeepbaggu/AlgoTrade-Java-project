@@ -1,0 +1,65 @@
+package algotrade;
+
+import java.util.List;
+import java.util.Scanner;
+
+import market.Stock;
+import market.StockMarket;
+
+public class StockMenu {
+    private final StockMarket stockMarket;
+
+    public StockMenu(StockMarket stockMarket) {
+        this.stockMarket = stockMarket;
+    }
+
+    // Used when the user opens the market from the main menu.
+    public void showStocks(Scanner input) {
+        displayStocks();
+
+        System.out.println("0. Return to main menu");
+        System.out.print("Choose an option: ");
+
+        while (!input.nextLine().trim().equals("0")) {
+            System.out.println("Please enter 0 to return to the main menu.");
+            System.out.print("Choose an option: ");
+        }
+    }
+
+    // Used by other features that need to show stocks without leaving their flow.
+    public void displayStocks() {
+        List<Stock> stocks = stockMarket.getAllStocks();
+
+        System.out.println();
+        System.out.println("==============================================================");
+        System.out.println("                    ALGOTRADE MARKET");
+        System.out.println("==============================================================");
+
+        if (stocks.isEmpty()) {
+            System.out.println("No stocks are currently available.");
+            System.out.println("Please check again later.");
+            System.out.println("==============================================================");
+            return;
+        }
+
+        System.out.printf("%-5s %-14s %-32s %14s%n",
+                "No.", "Symbol", "Company", "Price (INR)");
+        System.out.println("--------------------------------------------------------------");
+
+        int number = 1;
+
+        for (Stock stock : stocks) {
+            System.out.printf("%-5d %-14s %-32s ₹%,13.2f%n",
+                    number,
+                    stock.getSymbol(),
+                    stock.getCompanyName(),
+                    stock.getPrice());
+            number++;
+        }
+
+        System.out.println("--------------------------------------------------------------");
+        System.out.println("Stocks available: " + stocks.size());
+        System.out.println("Prices shown are sample values for this project.");
+        System.out.println("==============================================================");
+    }
+}

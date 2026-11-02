@@ -1,0 +1,41 @@
+package app;
+
+import java.util.Scanner;
+
+import auth.LoginService;
+import auth.PasswordHelper;
+import market.StockMarket;
+import storage.AccountFile;
+import storage.InvestorFile;
+import storage.TransactionFile;
+import ui.AuthenticationMenu;
+import ui.MainMenu;
+import ui.PriceAlertMenu;
+import ui.StockMenu;
+import ui.TradingMenu;
+import ui.TransactionHistoryMenu;
+import ui.WatchlistMenu;
+
+public class LoginDemo {
+
+public static void main(String[] args) {
+AccountFile accountFile = new AccountFile();
+PasswordHelper passwordHelper = new PasswordHelper();
+LoginService loginService = new LoginService(accountFile, passwordHelper);
+StockMarket stockMarket = new StockMarket();
+StockMenu stockMenu = new StockMenu(stockMarket);
+InvestorFile investorFile = new InvestorFile();
+TransactionFile transactionFile = new TransactionFile();
+TradingMenu tradingMenu = new TradingMenu(stockMenu, stockMarket, investorFile, transactionFile);
+TransactionHistoryMenu transactionHistoryMenu = new TransactionHistoryMenu(transactionFile, stockMarket);
+PriceAlertMenu priceAlertMenu = new PriceAlertMenu(stockMenu, stockMarket, investorFile);
+WatchlistMenu watchlistMenu = new WatchlistMenu(stockMenu, stockMarket, investorFile);
+MainMenu mainMenu = new MainMenu(stockMenu,tradingMenu,transactionHistoryMenu,
+        		                         priceAlertMenu,watchlistMenu,investorFile);
+AuthenticationMenu authenticationMenu =new AuthenticationMenu(loginService,investorFile,
+        		                                   stockMarket,mainMenu);
+try (Scanner input = new Scanner(System.in)) {
+    authenticationMenu.start(input);
+        }
+    }
+}

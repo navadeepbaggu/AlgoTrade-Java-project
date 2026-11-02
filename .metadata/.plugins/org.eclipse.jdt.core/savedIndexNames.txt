@@ -1,0 +1,4 @@
+INDEX VERSION 1.134+C:\ALGO-TRADE\.metadata\.plugins\org.eclipse.jdt.core
+2992657212.index
+1934778383.index
+1865797976.index

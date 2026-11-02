@@ -1,0 +1,32 @@
+package market;
+
+public class Stock extends MarketAsset{
+    
+
+        public Stock(String symbol, String companyName, double price) {
+            super(symbol, companyName, price);
+        }
+
+        @Override
+        public double calculateValue(int quantity) {
+            if (quantity < 0) {
+                throw new IllegalArgumentException(
+                        "Quantity cannot be negative.");
+            }
+
+            return getPrice() * quantity;
+        }
+    
+   
+    public String getSymbol() {
+        return symbol;
+    }
+
+    public String getCompanyName() {
+        return companyName;
+    }
+
+    public double getPrice() {
+        return price;
+    }
+}

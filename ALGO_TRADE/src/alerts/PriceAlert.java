@@ -1,0 +1,69 @@
+package alerts;
+
+import market.Stock;
+
+public class PriceAlert {
+    private final Stock stock;
+    private final double targetPrice;
+    private final String conditionName;
+    private final PriceAlertCondition condition;
+
+    private PriceAlert(
+            Stock stock,
+            double targetPrice,
+            String conditionName,
+            PriceAlertCondition condition) {
+
+        if (stock == null) {
+            throw new IllegalArgumentException("Stock cannot be empty.");
+        }
+        if (targetPrice <= 0) {
+            throw new IllegalArgumentException(
+                    "Target price must be greater than zero.");
+        }
+
+        this.stock = stock;
+        this.targetPrice = targetPrice;
+        this.conditionName = conditionName;
+        this.condition = condition;
+    }
+
+    public static PriceAlert whenPriceGoesAbove(
+            Stock stock,
+            double targetPrice) {
+
+        return new PriceAlert(
+                stock,
+                targetPrice,
+                "ABOVE",
+                (currentPrice, target) -> currentPrice >= target);
+    }
+
+    public static PriceAlert whenPriceGoesBelow(
+            Stock stock,
+            double targetPrice) {
+
+        return new PriceAlert(
+                stock,
+                targetPrice,
+                "BELOW",
+                (currentPrice, target) -> currentPrice <= target);
+    }
+
+    public Stock getStock() {
+        return stock;
+    }
+
+    public double getTargetPrice() {
+        return targetPrice;
+    }
+
+    public String getConditionName() {
+        return conditionName;
+    }
+
+    public boolean isTriggered() {
+        return condition.isTriggered(
+                stock.getPrice(), targetPrice);
+    }
+}

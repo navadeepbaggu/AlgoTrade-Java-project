@@ -1,0 +1,154 @@
+package algotrade;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+public class InvestorFile {
+    private static final double STARTING_CASH = 100_000.00;
+    private static final Path DATA_FOLDER =
+            Path.of("D:/AlgoTradeData/investors");
+
+    public Investor loadInvestor(
+            UserAccount userAccount,
+            StockMarket stockMarket) throws IOException {
+
+        Path filePath = getFilePath(userAccount.getUsername());
+
+        if (Files.notExists(filePath)) {
+            return new Investor(userAccount, STARTING_CASH);
+        }
+
+        List<String> lines =
+                Files.readAllLines(filePath, StandardCharsets.UTF_8);
+
+        double savedCash = STARTING_CASH;
+        List<String[]> savedHoldings = new ArrayList<>();
+        List<String> savedWatchlistSymbols = new ArrayList<>();
+        List<String[]> savedAlerts = new ArrayList<>();
+
+        try {
+            for (String line : lines) {
+                String[] parts = line.split("\\|", -1);
+
+                if (parts.length == 2 && parts[0].equals("CASH")) {
+                    savedCash = Double.parseDouble(parts[1]);
+
+                } else if (parts.length == 3
+                        && parts[0].equals("HOLDING")) {
+                    savedHoldings.add(parts);
+
+                } else if (parts.length == 2
+                        && parts[0].equals("WATCH")) {
+                    savedWatchlistSymbols.add(parts[1]);
+
+                } else if (parts.length == 4
+                        && parts[0].equals("ALERT")) {
+                    savedAlerts.add(parts);
+
+                } else {
+                    throw new IOException(
+                            "The investor data file has an invalid line.");
+                }
+            }
+
+            Investor investor = new Investor(userAccount, savedCash);
+
+            for (String[] holdingData : savedHoldings) {
+                String symbol = holdingData[1];
+                int quantity = Integer.parseInt(holdingData[2]);
+                Stock stock = findStock(stockMarket, symbol);
+
+                investor.getPortfolio().addHolding(stock, quantity);
+            }
+
+            for (String symbol : savedWatchlistSymbols) {
+                Stock stock = findStock(stockMarket, symbol);
+                investor.getWatchlist().addStock(stock);
+            }
+
+            for (String[] alertData : savedAlerts) {
+                String symbol = alertData[1];
+                double targetPrice = Double.parseDouble(alertData[2]);
+                String condition = alertData[3];
+                Stock stock = findStock(stockMarket, symbol);
+
+                PriceAlert alert = switch (condition) {
+                    case "ABOVE" ->
+                            PriceAlert.whenPriceGoesAbove(stock, targetPrice);
+                    case "BELOW" ->
+                            PriceAlert.whenPriceGoesBelow(stock, targetPrice);
+                    default -> throw new IOException(
+                            "The investor file contains an unknown alert condition.");
+                };
+
+                investor.getPriceAlertManager().addAlert(alert);
+            }
+
+            return investor;
+
+        } catch (RuntimeException exception) {
+            throw new IOException(
+                    "The investor data file contains invalid values.",
+                    exception);
+        }
+    }
+
+    public void saveInvestor(Investor investor) throws IOException {
+        Path filePath = getFilePath(investor.getUsername());
+        Files.createDirectories(DATA_FOLDER);
+
+        List<String> lines = new ArrayList<>();
+        lines.add("CASH|" + investor.getAvailableCash());
+
+        for (Holding holding : investor.getPortfolio().getHoldings()) {
+            lines.add("HOLDING|"
+                    + holding.getStock().getSymbol()
+                    + "|"
+                    + holding.getQuantity());
+        }
+
+        for (Stock stock : investor.getWatchlist().getStocks()) {
+            lines.add("WATCH|" + stock.getSymbol());
+        }
+
+        for (PriceAlert alert
+                : investor.getPriceAlertManager().getAlerts()) {
+            lines.add("ALERT|"
+                    + alert.getStock().getSymbol()
+                    + "|"
+                    + alert.getTargetPrice()
+                    + "|"
+                    + alert.getConditionName());
+        }
+
+        Files.write(filePath, lines, StandardCharsets.UTF_8);
+    }
+
+    private Stock findStock(StockMarket stockMarket, String symbol)
+            throws IOException {
+
+        Optional<Stock> stock = stockMarket.findBySymbol(symbol);
+
+        if (stock.isEmpty()) {
+            throw new IOException(
+                    "Saved stock " + symbol + " is not in the market list.");
+        }
+
+        return stock.get();
+    }
+
+    private Path getFilePath(String username) {
+        if (username == null
+                || !username.matches("[A-Za-z0-9_]{3,20}")) {
+            throw new IllegalArgumentException(
+                    "Invalid username for the data file.");
+        }
+
+        return DATA_FOLDER.resolve(username + ".txt");
+    }
+}
