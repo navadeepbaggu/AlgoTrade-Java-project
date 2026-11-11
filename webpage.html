@@ -1,0 +1,1532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlgoTrade | Trading Dashboard</title>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+    --bg: #080d19;
+    --surface: #111a2b;
+    --surface2: #17233a;
+    --border: #263550;
+    --text: #edf3ff;
+    --muted: #8998b3;
+    --cyan: #40e0d0;
+    --purple: #9b8cff;
+    --green: #43dda0;
+    --red: #ff7185;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: Inter, sans-serif;
+}
+
+button, input, select {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+.layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* SIDEBAR */
+
+.sidebar {
+    width: 245px;
+    background: #0d1525;
+    border-right: 1px solid var(--border);
+    padding: 28px 18px;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+.logo {
+    font-size: 23px;
+    font-weight: 800;
+    margin-bottom: 45px;
+    letter-spacing: -1px;
+}
+
+.logo span {
+    color: var(--cyan);
+}
+
+.logo-icon {
+    display: inline-grid;
+    place-items: center;
+    width: 35px;
+    height: 35px;
+    margin-right: 8px;
+    background: linear-gradient(135deg, var(--cyan), var(--purple));
+    color: #07111d;
+    border-radius: 11px;
+}
+
+.nav-title {
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: 2px;
+    margin: 18px 10px 12px;
+}
+
+.nav button {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 13px;
+    border: none;
+    background: transparent;
+    color: #a6b4cc;
+    border-radius: 10px;
+    margin-bottom: 5px;
+    text-align: left;
+    transition: .2s;
+}
+
+.nav button:hover,
+.nav button.active {
+    background: linear-gradient(100deg, #173a4a, #252447);
+    color: white;
+}
+
+.nav button.active {
+    box-shadow: inset 3px 0 var(--cyan);
+}
+
+.sidebar-bottom {
+    margin-top: auto;
+}
+
+.demo-box {
+    background: linear-gradient(140deg, #173a4a, #29234b);
+    border: 1px solid #3c536e;
+    padding: 17px;
+    border-radius: 14px;
+}
+
+.demo-box small {
+    color: #a9bbd4;
+}
+
+.demo-box strong {
+    display: block;
+    margin: 10px 0;
+}
+
+.demo-box p {
+    color: var(--cyan);
+    font-size: 11px;
+}
+
+/* MAIN */
+
+.main {
+    flex: 1;
+    min-width: 0;
+}
+
+.topbar {
+    height: 75px;
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: #0d1525;
+}
+
+.search {
+    width: min(320px, 40%);
+    padding: 11px 15px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: white;
+    outline: none;
+}
+
+.profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.avatar {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, var(--purple), var(--cyan));
+    color: #07111d;
+    border-radius: 12px;
+    font-weight: 800;
+}
+
+.content {
+    padding: 30px;
+    max-width: 1550px;
+    margin: auto;
+}
+
+.page {
+    display: none;
+}
+
+.page.active {
+    display: block;
+}
+
+.heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.heading h1 {
+    font-size: 28px;
+    letter-spacing: -1px;
+}
+
+.heading p {
+    color: var(--muted);
+    margin-top: 8px;
+    font-size: 13px;
+}
+
+.eyebrow {
+    color: var(--cyan);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 9px;
+    text-transform: uppercase;
+}
+
+/* BUTTONS */
+
+.btn {
+    padding: 11px 16px;
+    background: var(--surface2);
+    color: white;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    font-weight: 600;
+}
+
+.btn.primary {
+    background: linear-gradient(110deg, var(--cyan), #79baff);
+    color: #07111d;
+    border: none;
+}
+
+.btn:hover {
+    filter: brightness(1.13);
+}
+
+/* STAT CARDS */
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.card {
+    background: linear-gradient(145deg, #131e31, #101827);
+    border: 1px solid var(--border);
+    border-radius: 15px;
+    padding: 20px;
+}
+
+.stat-label {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.stat-value {
+    font-size: 25px;
+    font-weight: 800;
+    margin: 16px 0 9px;
+    letter-spacing: -.7px;
+}
+
+.green {
+    color: var(--green);
+}
+
+.red {
+    color: var(--red);
+}
+
+.stat-foot {
+    font-size: 11px;
+    color: var(--muted);
+}
+
+/* DASHBOARD GRID */
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1.7fr 1fr;
+    gap: 17px;
+    margin-bottom: 18px;
+}
+
+.panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 15px;
+    padding: 20px;
+    min-width: 0;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 12px;
+}
+
+.panel-header h3 {
+    font-size: 14px;
+}
+
+.panel-header small {
+    display: block;
+    color: var(--muted);
+    margin-top: 6px;
+    font-size: 11px;
+}
+
+.chart {
+    height: 250px;
+    width: 100%;
+}
+
+/* ALLOCATION */
+
+.allocation {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    min-height: 250px;
+}
+
+.donut {
+    width: 145px;
+    height: 145px;
+    border-radius: 50%;
+    background: conic-gradient(
+        var(--cyan) 0 38%,
+        var(--purple) 38% 65%,
+        #ffbd70 65% 83%,
+        #527aff 83% 100%
+    );
+    position: relative;
+    flex-shrink: 0;
+}
+
+.donut::after {
+    content: "100%";
+    position: absolute;
+    inset: 24px;
+    border-radius: 50%;
+    background: var(--surface);
+    display: grid;
+    place-items: center;
+    font-weight: 800;
+    font-size: 19px;
+}
+
+.legend {
+    display: grid;
+    gap: 17px;
+    width: 100%;
+}
+
+.legend div {
+    display: flex;
+    justify-content: space-between;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 7px;
+}
+
+/* TABLE */
+
+.table-panel {
+    padding: 0;
+    overflow: hidden;
+}
+
+.table-panel .panel-header {
+    padding: 20px 20px 0;
+}
+
+.table-scroll {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    white-space: nowrap;
+}
+
+th, td {
+    text-align: left;
+    padding: 15px 19px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+}
+
+th {
+    color: var(--muted);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+td {
+    color: #e1eaff;
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+.stock {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.stock-icon {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    background: #263a54;
+    color: var(--cyan);
+    border-radius: 10px;
+    font-weight: 800;
+    font-size: 10px;
+}
+
+.stock small {
+    display: block;
+    color: var(--muted);
+    margin-top: 4px;
+}
+
+/* MARKET */
+
+.market-search {
+    padding: 11px;
+    width: 100%;
+    background: #0c1422;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    color: white;
+    margin-bottom: 17px;
+}
+
+.action-btn {
+    background: #1b3545;
+    color: var(--cyan);
+    border: 1px solid #31566a;
+    border-radius: 7px;
+    padding: 7px 11px;
+    font-size: 11px;
+}
+
+/* TRADE FORM */
+
+.trade-grid {
+    display: grid;
+    grid-template-columns: 1.2fr .8fr;
+    gap: 17px;
+}
+
+.field {
+    margin: 17px 0;
+}
+
+.field label {
+    display: block;
+    color: var(--muted);
+    font-size: 12px;
+    margin-bottom: 8px;
+}
+
+.field input,
+.field select {
+    width: 100%;
+    padding: 12px;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: #0b1422;
+    color: white;
+    outline: none;
+}
+
+.trade-buttons {
+    display: flex;
+    gap: 10px;
+    margin: 18px 0;
+}
+
+.trade-buttons button {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: transparent;
+    color: white;
+}
+
+.trade-buttons .selected {
+    background: #164737;
+    border-color: var(--green);
+    color: var(--green);
+}
+
+.summary {
+    padding: 15px;
+    background: #0b1422;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    display: flex;
+    justify-content: space-between;
+    margin: 18px 0;
+}
+
+/* ALERTS */
+
+.alert {
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.alert:last-child {
+    border: none;
+}
+
+.muted {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.empty {
+    text-align: center;
+    padding: 30px;
+    color: var(--muted);
+}
+
+/* TOAST */
+
+.toast {
+    position: fixed;
+    right: 25px;
+    bottom: 25px;
+    padding: 14px 20px;
+    background: #164737;
+    color: white;
+    border: 1px solid var(--green);
+    border-radius: 10px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: .25s;
+    pointer-events: none;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* RESPONSIVE */
+
+@media(max-width:1100px) {
+    .stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .dashboard-grid,
+    .trade-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media(max-width:760px) {
+    .layout {
+        display: block;
+    }
+
+    .sidebar {
+        width: 100%;
+        padding: 14px;
+    }
+
+    .logo {
+        margin-bottom: 15px;
+    }
+
+    .nav {
+        display: flex;
+        overflow-x: auto;
+    }
+
+    .nav-title,
+    .sidebar-bottom {
+        display: none;
+    }
+
+    .nav button {
+        width: auto;
+        flex-shrink: 0;
+    }
+
+    .topbar {
+        padding: 0 15px;
+    }
+
+    .content {
+        padding: 20px 14px;
+    }
+
+    .heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .allocation {
+        flex-wrap: wrap;
+    }
+}
+
+@media(max-width:420px) {
+    .stats {
+        grid-template-columns: 1fr 1fr;
+        gap: 9px;
+    }
+
+    .stat-value {
+        font-size: 18px;
+    }
+
+    .card {
+        padding: 13px;
+    }
+
+    .search {
+        width: 55%;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="layout">
+
+<!-- SIDEBAR -->
+
+<aside class="sidebar">
+
+    <div class="logo">
+        <span class="logo-icon">A</span>Algo<span>Trade</span>
+    </div>
+
+    <div class="nav-title">MAIN MENU</div>
+
+    <nav class="nav" id="navigation">
+        <button class="active" data-page="dashboard">◫ Dashboard</button>
+        <button data-page="markets">⌁ Markets</button>
+        <button data-page="portfolio">▥ Portfolio</button>
+        <button data-page="watchlist">☆ Watchlist</button>
+        <button data-page="trading">⇄ Trading</button>
+        <button data-page="alerts">♧ Price Alerts</button>
+        <button data-page="reports">▤ Reports</button>
+    </nav>
+
+    <div class="sidebar-bottom">
+        <div class="demo-box">
+            <small>ACCOUNT MODE</small>
+            <strong>Learning Workspace</strong>
+            <p>● PAPER TRADING ENABLED</p>
+        </div>
+    </div>
+
+</aside>
+
+<!-- MAIN CONTENT -->
+
+<main class="main">
+
+<header class="topbar">
+    <input class="search" placeholder="⌕ Search stocks..." id="globalSearch">
+    <div class="profile">
+        <div class="avatar">AT</div>
+        <div>
+            <b>Investor</b>
+            <div class="muted">Demo account</div>
+        </div>
+    </div>
+</header>
+
+<div class="content">
+
+<!-- DASHBOARD -->
+
+<section class="page active" id="dashboard">
+
+    <div class="heading">
+        <div>
+            <div class="eyebrow">YOUR FINANCIAL OVERVIEW</div>
+            <h1>Trading Dashboard</h1>
+            <p>Monitor your simulated investments and market activity.</p>
+        </div>
+        <button class="btn primary" onclick="showPage('trading')">
+            + New Trade
+        </button>
+    </div>
+
+    <div class="stats">
+
+        <div class="card">
+            <div class="stat-label">Portfolio Value</div>
+            <div class="stat-value" id="totalValue">₹8,45,000</div>
+            <div class="stat-foot green">↗ +8.42% this month</div>
+        </div>
+
+        <div class="card">
+            <div class="stat-label">Today's Return</div>
+            <div class="stat-value green">+₹4,280</div>
+            <div class="stat-foot green">↗ +1.24% today</div>
+        </div>
+
+        <div class="card">
+            <div class="stat-label">Invested Capital</div>
+            <div class="stat-value">₹7,50,000</div>
+            <div class="stat-foot">Demo investment amount</div>
+        </div>
+
+        <div class="card">
+            <div class="stat-label">Total Profit</div>
+            <div class="stat-value green">+₹95,000</div>
+            <div class="stat-foot green">↗ +12.66% overall</div>
+        </div>
+
+    </div>
+
+    <div class="dashboard-grid">
+
+        <div class="panel">
+            <div class="panel-header">
+                <div>
+                    <h3>Portfolio Performance</h3>
+                    <small>Illustrative account history</small>
+                </div>
+                <span class="green">+12.66%</span>
+            </div>
+
+            <canvas id="chart" class="chart"></canvas>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">
+                <div>
+                    <h3>Asset Allocation</h3>
+                    <small>Portfolio distribution</small>
+                </div>
+            </div>
+
+            <div class="allocation">
+                <div class="donut"></div>
+
+                <div class="legend">
+                    <div>
+                        <span><i class="dot" style="background:var(--cyan)"></i>Technology</span>
+                        <b>38%</b>
+                    </div>
+
+                    <div>
+                        <span><i class="dot" style="background:var(--purple)"></i>Banking</span>
+                        <b>27%</b>
+                    </div>
+
+                    <div>
+                        <span><i class="dot" style="background:#ffbd70"></i>Energy</span>
+                        <b>18%</b>
+                    </div>
+
+                    <div>
+                        <span><i class="dot" style="background:#527aff"></i>Other</span>
+                        <b>17%</b>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="panel table-panel">
+        <div class="panel-header">
+            <div>
+                <h3>Market Watch</h3>
+                <small>Sample stock prices</small>
+            </div>
+            <button class="btn" onclick="showPage('markets')">View All →</button>
+        </div>
+
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Company</th>
+                        <th>Price</th>
+                        <th>Change</th>
+                        <th>Sector</th>
+                    </tr>
+                </thead>
+                <tbody id="dashboardStocks"></tbody>
+            </table>
+        </div>
+    </div>
+
+</section>
+
+<!-- MARKETS -->
+
+<section class="page" id="markets">
+
+    <div class="heading">
+        <div>
+            <div class="eyebrow">MARKET INTELLIGENCE</div>
+            <h1>Explore Markets</h1>
+            <p>Search and explore illustrative stock prices.</p>
+        </div>
+    </div>
+
+    <div class="panel">
+        <input class="market-search"
+               id="stockSearch"
+               placeholder="Search company or symbol..."
+               oninput="renderStocks()">
+
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Company</th>
+                        <th>Symbol</th>
+                        <th>Price</th>
+                        <th>Change</th>
+                        <th>Sector</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="marketStocks"></tbody>
+            </table>
+        </div>
+    </div>
+
+</section>
+
+<!-- PORTFOLIO -->
+
+<section class="page" id="portfolio">
+
+    <div class="heading">
+        <div>
+            <div class="eyebrow">INVESTMENT TRACKER</div>
+            <h1>My Portfolio</h1>
+            <p>Track your simulated stock holdings.</p>
+        </div>
+        <button class="btn primary" onclick="showPage('trading')">New Trade</button>
+    </div>
+
+    <div class="panel table-panel">
+        <div class="panel-header">
+            <h3>My Holdings</h3>
+        </div>
+
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Company</th>
+                        <th>Quantity</th>
+                        <th>Price</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
+                <tbody id="portfolioStocks"></tbody>
+            </table>
+        </div>
+    </div>
+
+</section>
+
+<!-- WATCHLIST -->
+
+<section class="page" id="watchlist">
+
+    <div class="heading">
+        <div>
+            <div class="eyebrow">YOUR FAVOURITES</div>
+            <h1>Watchlist</h1>
+            <p>Keep selected instruments in one place.</p>
+        </div>
+    </div>
+
+    <div class="panel table-panel">
+        <div class="panel-header">
+            <h3>Saved Stocks</h3>
+        </div>
+
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Company</th>
+                        <th>Price</th>
+                        <th>Change</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="watchStocks"></tbody>
+            </table>
+        </div>
+    </div>
+
+</section>
+
+<!-- TRADING -->
+
+<section class="page" id="trading">
+
+    <div class="heading">
+        <div>
+            <div class="eyebrow">SIMULATION ENGINE</div>
+            <h1>Trading Terminal</h1>
+            <p>Practice buying and selling using demo balances.</p>
+        </div>
+    </div>
+
+    <div class="trade-grid">
+
+        <div class="panel">
+            <h3>Place Simulated Order</h3>
+
+            <div class="trade-buttons">
+                <button id="buyButton" class="selected" onclick="setSide('BUY')">BUY</button>
+                <button id="sellButton" onclick="setSide('SELL')">SELL</button>
+            </div>
+
+            <div class="field">
+                <label>Select Stock</label>
+                <select id="tradeStock" onchange="updateSummary()"></select>
+            </div>
+
+            <div class="field">
+                <label>Quantity</label>
+                <input type="number" id="tradeQuantity"
+                       value="1" min="1" oninput="updateSummary()">
+            </div>
+
+            <div class="summary">
+                <span class="muted">Stock Price</span>
+                <b id="tradePrice">₹0.00</b>
+            </div>
+
+            <div class="summary">
+                <span class="muted">Estimated Total</span>
+                <b id="tradeTotal">₹0.00</b>
+            </div>
+
+            <button class="btn primary"
+                    style="width:100%"
+                    onclick="executeTrade()">
+                Confirm Demo Order
+            </button>
+
+            <p class="muted" style="margin-top:15px;line-height:1.6">
+                This is a paper-trading exercise. No real securities,
+                money or brokerage accounts are involved.
+            </p>
+        </div>
+
+        <div class="panel">
+            <h3>Order Information</h3>
+            <br>
+            <div class="alert">
+                <span class="muted">Execution mode</span>
+                <b class="green">SIMULATION</b>
+            </div>
+            <div class="alert">
+                <span class="muted">Order status</span>
+                <b>Local demo</b>
+            </div>
+            <div class="alert">
+                <span class="muted">Market connection</span>
+                <b>Not connected</b>
+            </div>
+            <br>
+            <p class="muted" style="line-height:1.8">
+                Orders update the sample holdings in this browser session.
+                Refreshing the page resets the demo data.
+            </p>
+        </div>
+
+    </div>
+
+</section>
+
+<!-- ALERTS -->
+
+<section class="page" id="alerts">
+
+    <div class="heading">
+        <div>
+            <div class="eyebrow">PRICE MONITORING</div>
+            <h1>Price Alerts</h1>
+            <p>Create local reminders for sample stock prices.</p>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h3>Create New Alert</h3>
+
+        <div class="field">
+            <label>Stock</label>
+            <select id="alertStock"></select>
+        </div>
+
+        <div class="field">
+            <label>Target Price (₹)</label>
+            <input type="number" id="alertPrice" min="1" placeholder="Enter target price">
+        </div>
+
+        <button class="btn primary" onclick="addAlert()">Create Alert</button>
+
+        <br><br>
+        <h3>Saved Alerts</h3>
+        <div id="alertList"></div>
+    </div>
+
+</section>
+
+<!-- REPORTS -->
+
+<section class="page" id="reports">
+
+    <div class="heading">
+        <div>
+            <div class="eyebrow">ACCOUNT ANALYTICS</div>
+            <h1>Reports Centre</h1>
+            <p>Review your simulated trading activity.</p>
+        </div>
+    </div>
+
+    <div class="stats">
+        <div class="card">
+            <div class="stat-label">Available Stocks</div>
+            <div class="stat-value" id="reportStocks">0</div>
+        </div>
+        <div class="card">
+            <div class="stat-label">Watchlist Stocks</div>
+            <div class="stat-value" id="reportWatch">0</div>
+        </div>
+        <div class="card">
+            <div class="stat-label">Demo Orders</div>
+            <div class="stat-value" id="reportOrders">0</div>
+        </div>
+        <div class="card">
+            <div class="stat-label">Price Alerts</div>
+            <div class="stat-value" id="reportAlerts">0</div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h3>Export Demo Report</h3>
+        <br>
+        <button class="btn primary" onclick="exportReport()">
+            Download CSV Report
+        </button>
+    </div>
+
+</section>
+
+</div>
+</main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+
+/* SAMPLE STOCK DATA */
+
+const stocks = [
+    {symbol:"RELIANCE",name:"Reliance Industries",price:1462.35,change:1.84,sector:"Energy",qty:10},
+    {symbol:"TCS",name:"Tata Consultancy Services",price:3824.10,change:2.16,sector:"Technology",qty:5},
+    {symbol:"INFY",name:"Infosys Limited",price:1588.60,change:-0.72,sector:"Technology",qty:12},
+    {symbol:"HDFCBANK",name:"HDFC Bank",price:1742.80,change:0.93,sector:"Banking",qty:8},
+    {symbol:"ICICIBANK",name:"ICICI Bank",price:1294.20,change:1.28,sector:"Banking",qty:0},
+    {symbol:"WIPRO",name:"Wipro Limited",price:548.75,change:-0.35,sector:"Technology",qty:0},
+    {symbol:"ONGC",name:"ONGC",price:276.40,change:0.48,sector:"Energy",qty:0},
+    {symbol:"TATAMOTORS",name:"Tata Motors",price:912.50,change:-1.12,sector:"Automotive",qty:0}
+];
+
+let watchlist = ["TCS","RELIANCE","INFY"];
+let alerts = [];
+let orders = [];
+let tradeSide = "BUY";
+
+/* HELPERS */
+
+function money(value) {
+    return "₹" + Number(value).toLocaleString("en-IN", {
+        minimumFractionDigits:2,
+        maximumFractionDigits:2
+    });
+}
+
+function getStock(symbol) {
+    return stocks.find(s => s.symbol === symbol);
+}
+
+function notify(message) {
+    const toast = document.getElementById("toast");
+    toast.textContent = message;
+    toast.classList.add("show");
+
+    setTimeout(() => toast.classList.remove("show"), 2400);
+}
+
+/* NAVIGATION */
+
+function showPage(id) {
+    document.querySelectorAll(".page").forEach(page => {
+        page.classList.toggle("active", page.id === id);
+    });
+
+    document.querySelectorAll(".nav button").forEach(button => {
+        button.classList.toggle("active", button.dataset.page === id);
+    });
+
+    if(id === "markets") renderStocks();
+    if(id === "portfolio") renderPortfolio();
+    if(id === "watchlist") renderWatchlist();
+    if(id === "alerts") renderAlerts();
+    if(id === "reports") renderReports();
+}
+
+document.getElementById("navigation").addEventListener("click", event => {
+    const button = event.target.closest("button[data-page]");
+    if(button) showPage(button.dataset.page);
+});
+
+/* STOCK DISPLAY */
+
+function stockHTML(stock) {
+    return `
+        <div class="stock">
+            <div class="stock-icon">${stock.symbol.slice(0,3)}</div>
+            <div>
+                <b>${stock.name}</b>
+                <small>${stock.symbol}</small>
+            </div>
+        </div>
+    `;
+}
+
+function changeHTML(value) {
+    return `<span class="${value >= 0 ? "green" : "red"}">
+        ${value >= 0 ? "+" : ""}${value.toFixed(2)}%
+    </span>`;
+}
+
+function renderDashboard() {
+    const sorted = [...stocks].sort((a,b) => b.change-a.change);
+
+    document.getElementById("dashboardStocks").innerHTML =
+        sorted.slice(0,5).map(stock => `
+            <tr>
+                <td>${stockHTML(stock)}</td>
+                <td>${money(stock.price)}</td>
+                <td>${changeHTML(stock.change)}</td>
+                <td>${stock.sector}</td>
+            </tr>
+        `).join("");
+}
+
+function renderStocks() {
+    const search = (
+        document.getElementById("stockSearch")?.value || ""
+    ).toLowerCase();
+
+    const filtered = stocks.filter(stock =>
+        stock.name.toLowerCase().includes(search) ||
+        stock.symbol.toLowerCase().includes(search)
+    );
+
+    document.getElementById("marketStocks").innerHTML =
+        filtered.map(stock => `
+            <tr>
+                <td>${stockHTML(stock)}</td>
+                <td>${stock.symbol}</td>
+                <td>${money(stock.price)}</td>
+                <td>${changeHTML(stock.change)}</td>
+                <td>${stock.sector}</td>
+                <td>
+                    <button class="action-btn"
+                        onclick="toggleWatch('${stock.symbol}')">
+                        ${watchlist.includes(stock.symbol) ? "★ Saved" : "+ Watch"}
+                    </button>
+                </td>
+            </tr>
+        `).join("") || `
+            <tr><td colspan="6" class="empty">No stocks found.</td></tr>
+        `;
+}
+
+/* WATCHLIST */
+
+function toggleWatch(symbol) {
+    if(watchlist.includes(symbol)) {
+        watchlist = watchlist.filter(s => s !== symbol);
+        notify("Removed from watchlist");
+    } else {
+        watchlist.push(symbol);
+        notify("Added to watchlist");
+    }
+
+    renderStocks();
+    renderWatchlist();
+}
+
+function renderWatchlist() {
+    document.getElementById("watchStocks").innerHTML =
+        watchlist.map(symbol => getStock(symbol)).filter(Boolean).map(stock => `
+            <tr>
+                <td>${stockHTML(stock)}</td>
+                <td>${money(stock.price)}</td>
+                <td>${changeHTML(stock.change)}</td>
+                <td>
+                    <button class="action-btn"
+                        onclick="toggleWatch('${stock.symbol}')">
+                        Remove
+                    </button>
+                </td>
+            </tr>
+        `).join("") || `
+            <tr><td colspan="4" class="empty">Your watchlist is empty.</td></tr>
+        `;
+}
+
+/* PORTFOLIO */
+
+function renderPortfolio() {
+    const holdings = stocks.filter(stock => stock.qty > 0);
+
+    document.getElementById("portfolioStocks").innerHTML =
+        holdings.map(stock => `
+            <tr>
+                <td>${stockHTML(stock)}</td>
+                <td>${stock.qty}</td>
+                <td>${money(stock.price)}</td>
+                <td>${money(stock.qty * stock.price)}</td>
+            </tr>
+        `).join("") || `
+            <tr><td colspan="4" class="empty">No holdings yet.</td></tr>
+        `;
+}
+
+/* TRADING */
+
+function setSide(side) {
+    tradeSide = side;
+
+    document.getElementById("buyButton").classList.toggle(
+        "selected", side === "BUY"
+    );
+
+    document.getElementById("sellButton").classList.toggle(
+        "selected", side === "SELL"
+    );
+
+    updateSummary();
+}
+
+function updateSummary() {
+    const stock = getStock(document.getElementById("tradeStock").value);
+    const quantity = Math.max(
+        0, Number(document.getElementById("tradeQuantity").value) || 0
+    );
+
+    if(!stock) return;
+
+    document.getElementById("tradePrice").textContent = money(stock.price);
+    document.getElementById("tradeTotal").textContent =
+        money(stock.price * quantity);
+}
+
+function executeTrade() {
+    const stock = getStock(document.getElementById("tradeStock").value);
+    const quantity = Number(document.getElementById("tradeQuantity").value);
+
+    if(!stock || !Number.isInteger(quantity) || quantity < 1) {
+        notify("Enter a valid whole-number quantity");
+        return;
+    }
+
+    if(tradeSide === "SELL" && quantity > stock.qty) {
+        notify("Not enough demo holdings to sell");
+        return;
+    }
+
+    if(tradeSide === "BUY") {
+        stock.qty += quantity;
+    } else {
+        stock.qty -= quantity;
+    }
+
+    orders.unshift({
+        symbol:stock.symbol,
+        side:tradeSide,
+        quantity,
+        price:stock.price,
+        date:new Date().toLocaleString()
+    });
+
+    renderPortfolio();
+    renderDashboard();
+    renderReports();
+    notify(tradeSide + " order simulated successfully");
+}
+
+/* PRICE ALERTS */
+
+function addAlert() {
+    const symbol = document.getElementById("alertStock").value;
+    const price = Number(document.getElementById("alertPrice").value);
+
+    if(!price || price <= 0) {
+        notify("Enter a valid target price");
+        return;
+    }
+
+    alerts.push({symbol,price});
+
+    document.getElementById("alertPrice").value = "";
+
+    renderAlerts();
+    notify("Demo alert created");
+}
+
+function renderAlerts() {
+    document.getElementById("alertList").innerHTML =
+        alerts.map((alert,index) => `
+            <div class="alert">
+                <div>
+                    <b>${alert.symbol}</b>
+                    <div class="muted">Target: ${money(alert.price)}</div>
+                </div>
+                <button class="action-btn"
+                    onclick="removeAlert(${index})">Remove</button>
+            </div>
+        `).join("") || `
+            <div class="empty">No saved alerts.</div>
+        `;
+}
+
+function removeAlert(index) {
+    alerts.splice(index,1);
+    renderAlerts();
+    notify("Alert removed");
+}
+
+/* REPORTS */
+
+function renderReports() {
+    document.getElementById("reportStocks").textContent = stocks.length;
+    document.getElementById("reportWatch").textContent = watchlist.length;
+    document.getElementById("reportOrders").textContent = orders.length;
+    document.getElementById("reportAlerts").textContent = alerts.length;
+}
+
+function exportReport() {
+    const rows = [
+        ["Symbol","Company","Price","Quantity","Sector"],
+        ...stocks.map(stock => [
+            stock.symbol,
+            stock.name,
+            stock.price,
+            stock.qty,
+            stock.sector
+        ])
+    ];
+
+    const csv = rows.map(row =>
+        row.map(value => `"${String(value).replaceAll('"','""')}"`).join(",")
+    ).join("\n");
+
+    const blob = new Blob([csv], {type:"text/csv"});
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "algotrade-report.csv";
+    link.click();
+
+    URL.revokeObjectURL(url);
+    notify("Report exported");
+}
+
+/* CHART */
+
+function drawChart() {
+    const canvas = document.getElementById("chart");
+    const rect = canvas.getBoundingClientRect();
+    if(!rect.width) return;
+
+    const dpr = window.devicePixelRatio || 1;
+
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+
+    const ctx = canvas.getContext("2d");
+    ctx.scale(dpr,dpr);
+
+    const width = rect.width;
+    const height = rect.height;
+
+    const values = Array.from({length:45},(_,i) =>
+        50 + i * 1.4 +
+        Math.sin(i * .5) * 8 +
+        Math.sin(i * .18) * 5
+    );
+
+    const min = Math.min(...values) - 5;
+    const max = Math.max(...values) + 5;
+
+    const points = values.map((value,index) => ({
+        x: 15 + index * (width - 30) / (values.length - 1),
+        y: height - 15 -
+           (value-min)/(max-min)*(height-30)
+    }));
+
+    ctx.strokeStyle = "#263550";
+    ctx.lineWidth = 1;
+
+    for(let i=0;i<4;i++) {
+        const y = 15 + i*(height-30)/3;
+        ctx.beginPath();
+        ctx.moveTo(0,y);
+        ctx.lineTo(width,y);
+        ctx.stroke();
+    }
+
+    const gradient = ctx.createLinearGradient(0,0,0,height);
+    gradient.addColorStop(0,"rgba(64,224,208,.3)");
+    gradient.addColorStop(1,"rgba(64,224,208,0)");
+
+    ctx.beginPath();
+
+    points.forEach((point,index) => {
+        if(index === 0) ctx.moveTo(point.x,point.y);
+        else ctx.lineTo(point.x,point.y);
+    });
+
+    ctx.lineTo(width-15,height-15);
+    ctx.lineTo(15,height-15);
+    ctx.closePath();
+
+    ctx.fillStyle = gradient;
+    ctx.fill();
+
+    ctx.beginPath();
+
+    points.forEach((point,index) => {
+        if(index === 0) ctx.moveTo(point.x,point.y);
+        else ctx.lineTo(point.x,point.y);
+    });
+
+    ctx.strokeStyle = "#40e0d0";
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+}
+
+/* INITIALIZATION */
+
+function init() {
+    const options = stocks.map(stock =>
+        `<option value="${stock.symbol}">
+            ${stock.symbol} — ${stock.name}
+        </option>`
+    ).join("");
+
+    document.getElementById("tradeStock").innerHTML = options;
+    document.getElementById("alertStock").innerHTML = options;
+
+    renderDashboard();
+    renderStocks();
+    renderPortfolio();
+    renderWatchlist();
+    renderAlerts();
+    renderReports();
+    updateSummary();
+    drawChart();
+}
+
+document.getElementById("globalSearch").addEventListener("input", event => {
+    showPage("markets");
+    document.getElementById("stockSearch").value = event.target.value;
+    renderStocks();
+});
+
+window.addEventListener("resize", drawChart);
+
+init();
+
+</script>
+
+</body>
+</html>
